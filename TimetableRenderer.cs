@@ -84,20 +84,26 @@ namespace TimeTableApp
                 float labelW = table.Width * 0.06f;
                 string badge3 = string.IsNullOrWhiteSpace(data.Platform3Label) ? "③" : data.Platform3Label;
                 string badge4 = string.IsNullOrWhiteSpace(data.Platform4Label) ? "④" : data.Platform4Label;
-                DrawInfoBand(g, topInfoBand, labelW, 10, data.TopInfo, badge4);
-                DrawTimeBand(g, topTimeBand, labelW, 10, data.TopTimes, badge3, data.TopLeftHour, data.TopOverlayColumn, data.TopOverlayHour);
-                DrawInfoBand(g, midInfoBand, labelW, 10, data.MidInfo, badge4);
-                DrawTimeBand(g, midTimeBand, labelW, 10, data.MidTimes, badge3, data.MidLeftHour, data.MidOverlayColumn, data.MidOverlayHour);
+                int topInfoCount = Math.Max(1, SafeLength(data.TopInfo));
+                int topTimeCount = Math.Max(1, SafeLength(data.TopTimes) + CountHourSlots(data.TopLeftHour, data.TopOverlayHour));
+                int midInfoCount = Math.Max(1, SafeLength(data.MidInfo));
+                int midTimeCount = Math.Max(1, SafeLength(data.MidTimes) + CountHourSlots(data.MidLeftHour, data.MidOverlayHour));
+                int bottomInfoCount = Math.Max(1, SafeLength(data.BottomInfo));
+                int bottomTimeCount = Math.Max(1, SafeLength(data.BottomTimes));
+                DrawInfoBand(g, topInfoBand, labelW, topInfoCount, data.TopInfo, badge4);
+                DrawTimeBand(g, topTimeBand, labelW, topTimeCount, data.TopTimes, badge3, data.TopLeftHour, data.TopOverlayColumn, data.TopOverlayHour);
+                DrawInfoBand(g, midInfoBand, labelW, midInfoCount, data.MidInfo, badge4);
+                DrawTimeBand(g, midTimeBand, labelW, midTimeCount, data.MidTimes, badge3, data.MidLeftHour, data.MidOverlayColumn, data.MidOverlayHour);
 
                 float miniLabelW = leftBottom.Width * 0.11f;
 
                 if (data.DrawBottomVerticalLines)
                 {
-                    DrawMiniBandGrid(g, leftBottom, miniLabelW, lwThin);
+                    DrawMiniBandGrid(g, leftBottom, miniLabelW, lwThin, Math.Max(bottomInfoCount, bottomTimeCount));
                 }
 
-                DrawInfoBand(g, leftBottomTop, miniLabelW, 6, data.BottomInfo, badge4);
-                DrawTimeBand(g, leftBottomBottom, miniLabelW, 6, data.BottomTimes, badge3, string.Empty, -1, string.Empty);
+                DrawInfoBand(g, leftBottomTop, miniLabelW, bottomInfoCount, data.BottomInfo, badge4);
+                DrawTimeBand(g, leftBottomBottom, miniLabelW, bottomTimeCount, data.BottomTimes, badge3, string.Empty, -1, string.Empty);
                 DrawRightNotes(g, rightBottom);
             }
 
@@ -134,7 +140,7 @@ namespace TimeTableApp
 
         private static void DrawInfoBand(Graphics g, RectangleF band, float labelW, int count, TimetableTrainInfoRow[] rows, string badge)
         {
-            DrawBadge(g, new RectangleF(band.Left, band.Top, labelW, band.Height), badge, false, string.Empty);
+            DrawBadge(g, new RectangleF(band.Left, band.Top, labelW, band.Height), badge);
 
             RectangleF[] cols = BuildCols(band, labelW, count);
             using (Font fCode = FontFor(band.Height * 0.16f, FontStyle.Bold))
@@ -148,10 +154,7 @@ namespace TimeTableApp
                     TimetableTrainInfoRow row = GetInfo(rows, i);
                     RectangleF c = cols[i];
                     float y = c.Top + band.Height * 0.01f;
-                    using (Brush bCode = new SolidBrush(ParseColor(row.CodeColor, COrange)))
-                    {
-                        DrawCenter(g, row.Code, fCode, bCode, new RectangleF(c.Left, y, c.Width, band.Height * 0.2f));
-                    }
+                    DrawInfoTimeCode(g, new RectangleF(c.Left, y, c.Width, band.Height * 0.2f), row.Code, ParseColor(row.CodeColor, COrange), fCode);
 
                     y += band.Height * 0.20f;
                     DrawCenter(g, row.TrainNo, fNo, bBlack, new RectangleF(c.Left, y, c.Width, band.Height * 0.18f));
@@ -163,18 +166,60 @@ namespace TimeTableApp
             }
         }
 
+        private static void DrawInfoTimeCode(Graphics g, RectangleF rect, string raw, Color color, Font fallbackFont)
+        {
+            string digits = NormalizeTime4OrEmpty(raw);
+            using (Brush b = new SolidBrush(color))
+            {
+                if (digits.Length == 0)
+                {
+                    DrawCenter(g, raw, fallbackFont, b, rect);
+                    return;
+                }
+
+                string mm = digits.Substring(0, 2);
+                string ss = digits.Substring(2, 2);
+                using (Font fMM = FontFor(rect.Height * 0.90f, FontStyle.Bold))
+                using (Font fSS = FontFor(rect.Height * 0.62f, FontStyle.Bold))
+                using (Font fParen = FontFor(rect.Height * 0.78f, FontStyle.Bold))
+                {
+                    SizeF sL = g.MeasureString("(", fParen, 120, StringFormat.GenericTypographic);
+                    SizeF sMM = g.MeasureString(mm, fMM, 120, StringFormat.GenericTypographic);
+                    SizeF sSS = g.MeasureString(ss, fSS, 120, StringFormat.GenericTypographic);
+                    SizeF sR = g.MeasureString(")", fParen, 120, StringFormat.GenericTypographic);
+                    float total = sL.Width + sMM.Width + sSS.Width + sR.Width;
+                    float x = rect.Left + (rect.Width - total) * 0.5f;
+                    float yMM = rect.Top + rect.Height * 0.03f;
+                    float ySS = yMM + (sMM.Height - sSS.Height) + rect.Height * 0.01f;
+                    float yP = yMM + (sMM.Height - sL.Height) * 0.55f;
+
+                    g.DrawString("(", fParen, b, x, yP, StringFormat.GenericTypographic);
+                    x += sL.Width;
+                    g.DrawString(mm, fMM, b, x, yMM, StringFormat.GenericTypographic);
+                    x += sMM.Width;
+                    g.DrawString(ss, fSS, b, x, ySS, StringFormat.GenericTypographic);
+                    x += sSS.Width;
+                    g.DrawString(")", fParen, b, x, yP, StringFormat.GenericTypographic);
+                }
+            }
+        }
+
         private static void DrawTimeBand(Graphics g, RectangleF band, float labelW, int count, TimetableTimeRow[] rows, string badge, string leftHour, int overlayCol, string overlayHour)
         {
-            DrawBadge(g, new RectangleF(band.Left, band.Top, labelW, band.Height), badge, true, leftHour);
+            DrawBadge(g, new RectangleF(band.Left, band.Top, labelW, band.Height), badge);
 
             RectangleF[] cols = BuildCols(band, labelW, count);
-            if (overlayCol >= 0 && overlayCol < cols.Length && !string.IsNullOrEmpty(overlayHour))
+            bool hasLeftHour = !string.IsNullOrWhiteSpace(leftHour);
+            bool hasOverlayHour = overlayCol >= 0 && overlayCol < cols.Length && !string.IsNullOrEmpty(overlayHour);
+
+            if (hasLeftHour)
             {
-                using (Font fOverlay = FontFor(band.Height * 0.22f, FontStyle.Bold))
-                using (Brush bBlack = new SolidBrush(CBlack))
-                {
-                    DrawCenter(g, overlayHour, fOverlay, bBlack, new RectangleF(cols[overlayCol].Left, band.Top, cols[overlayCol].Width, band.Height * 0.20f));
-                }
+                DrawHourLabelInSlot(g, band, cols, -1, leftHour);
+            }
+
+            if (hasOverlayHour)
+            {
+                DrawHourLabelInSlot(g, band, cols, overlayCol, overlayHour);
             }
 
             using (Font fMM = FontFor(band.Height * 0.40f, FontStyle.Bold))
@@ -183,9 +228,18 @@ namespace TimeTableApp
             using (Font fNote = FontFor(band.Height * 0.15f, FontStyle.Regular))
             using (Brush bBlack = new SolidBrush(CBlack))
             {
+                int timeRowIndex = 0;
                 for (int i = 0; i < count; i++)
                 {
-                    TimetableTimeRow row = GetTime(rows, i);
+                    bool reservedByLeft = hasLeftHour && i == 0;
+                    bool reservedByOverlay = hasOverlayHour && i == overlayCol;
+                    if (reservedByLeft || reservedByOverlay)
+                    {
+                        continue;
+                    }
+
+                    TimetableTimeRow row = GetTime(rows, timeRowIndex);
+                    timeRowIndex++;
                     RectangleF c = cols[i];
                     DrawTime(g, c, band, row.Time4, fMM, fSS, row.Highlight ? CGreen : CBlack);
                     DrawCenter(g, row.TrainNo, fMid, bBlack, new RectangleF(c.Left, c.Top + band.Height * 0.47f, c.Width, band.Height * 0.18f));
@@ -200,19 +254,79 @@ namespace TimeTableApp
             }
         }
 
-        private static void DrawMiniBandGrid(Graphics g, RectangleF band, float labelW, float lwThin)
+        private static void DrawHourLabelInSlot(Graphics g, RectangleF band, RectangleF[] cols, int slot, string text)
         {
+            if (cols == null || cols.Length == 0 || string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            float colW = cols[0].Width;
+            float x;
+            if (slot < 0)
+            {
+                float leftSpace = cols[0].Left - band.Left;
+                x = band.Left + (leftSpace - colW) * 0.5f;
+                if (x < band.Left)
+                {
+                    x = band.Left;
+                }
+            }
+            else
+            {
+                int col = slot;
+                if (col >= cols.Length)
+                {
+                    col = cols.Length - 1;
+                }
+
+                x = cols[col].Left;
+            }
+
+            float h = band.Height * 0.22f;
+            float baselineBottom = band.Top + band.Height * 0.46f;
+            float y = baselineBottom - h;
+            using (Font f = FontFor(band.Height * 0.22f, FontStyle.Bold))
+            using (Brush b = new SolidBrush(CBlack))
+            {
+                DrawCenter(g, text, f, b, new RectangleF(x, y, colW, h));
+            }
+        }
+
+        private static int CountHourSlots(string leftHour, string overlayHour)
+        {
+            int count = 0;
+            if (!string.IsNullOrWhiteSpace(leftHour))
+            {
+                count++;
+            }
+            if (!string.IsNullOrWhiteSpace(overlayHour))
+            {
+                count++;
+            }
+
+            return count;
+        }
+
+        private static void DrawMiniBandGrid(Graphics g, RectangleF band, float labelW, float lwThin, int count)
+        {
+            int columnCount = Math.Max(1, count);
             using (Pen p = new Pen(CBlack, lwThin))
             {
                 float x0 = band.Left + labelW;
                 g.DrawLine(p, x0, band.Top, x0, band.Bottom);
-                float cw = (band.Width - labelW) / 6f;
-                for (int i = 1; i < 6; i++)
+                float cw = (band.Width - labelW) / columnCount;
+                for (int i = 1; i < columnCount; i++)
                 {
                     float x = x0 + cw * i;
                     g.DrawLine(p, x, band.Top, x, band.Bottom);
                 }
             }
+        }
+
+        private static int SafeLength<T>(T[] rows)
+        {
+            return rows == null ? 0 : rows.Length;
         }
 
         private static void DrawRightNotes(Graphics g, RectangleF right)
@@ -324,9 +438,15 @@ namespace TimeTableApp
 
         private static string NormalizeTime4(string value)
         {
+            string digits = NormalizeTime4OrEmpty(value);
+            return digits.Length == 0 ? "0000" : digits;
+        }
+
+        private static string NormalizeTime4OrEmpty(string value)
+        {
             if (string.IsNullOrEmpty(value))
             {
-                return "0000";
+                return string.Empty;
             }
 
             string digits = string.Empty;
@@ -336,6 +456,11 @@ namespace TimeTableApp
                 {
                     digits += value[i];
                 }
+            }
+
+            if (digits.Length == 0)
+            {
+                return string.Empty;
             }
 
             if (digits.Length >= 4)
@@ -382,21 +507,12 @@ namespace TimeTableApp
             return cols;
         }
 
-        private static void DrawBadge(Graphics g, RectangleF rect, string platformText, bool withHour, string hourText)
+        private static void DrawBadge(Graphics g, RectangleF rect, string platformText)
         {
             using (Brush black = new SolidBrush(CBlack))
             using (Font badgeFont = FontFor(rect.Height * 0.19f, FontStyle.Bold))
             {
                 DrawCenter(g, platformText ?? string.Empty, badgeFont, black, new RectangleF(rect.Left, rect.Top + rect.Height * 0.04f, rect.Width, rect.Height * 0.24f));
-            }
-
-            if (withHour && !string.IsNullOrWhiteSpace(hourText))
-            {
-                using (Brush black = new SolidBrush(CBlack))
-                using (Font hourFont = FontFor(rect.Height * 0.24f, FontStyle.Bold))
-                {
-                    DrawCenter(g, hourText, hourFont, black, new RectangleF(rect.Left, rect.Top + rect.Height * 0.24f, rect.Width, rect.Height * 0.42f));
-                }
             }
         }
 
@@ -631,72 +747,72 @@ namespace TimeTableApp
                 DrawBottomVerticalLines = false,
                 TopInfo = new[]
                 {
-                    new TimetableTrainInfoRow{ Code="(5045)", CodeColor="Orange", TrainNo="4039M", TrainType="特急", Destination="サンダーバード" },
-                    new TimetableTrainInfoRow{ Code="(54)", CodeColor="Orange", TrainNo="8545M", TrainType="回送", Destination="" },
-                    new TimetableTrainInfoRow{ Code="(57)", CodeColor="Blue", TrainNo="3498M", TrainType="新快", Destination="野洲" },
-                    new TimetableTrainInfoRow{ Code="(03)", CodeColor="Orange", TrainNo="8864J", TrainType="貨物", Destination="" },
-                    new TimetableTrainInfoRow{ Code="(0730)", CodeColor="Orange", TrainNo="6752M", TrainType="回送", Destination="" },
-                    new TimetableTrainInfoRow{ Code="(12)", CodeColor="Blue", TrainNo="3500M", TrainType="新快", Destination="長浜" },
-                    new TimetableTrainInfoRow{ Code="(1515)", CodeColor="Orange", TrainNo="1042M", TrainType="特急", Destination="はるか" },
-                    new TimetableTrainInfoRow{ Code="(2110)", CodeColor="Orange", TrainNo="4041M", TrainType="特急", Destination="サンダーバード" },
-                    new TimetableTrainInfoRow{ Code="(27)", CodeColor="Blue", TrainNo="3502A", TrainType="新快", Destination="野洲" },
-                    new TimetableTrainInfoRow{ Code="(3245)", CodeColor="Blue", TrainNo="3804M", TrainType="新快", Destination="湖敦賀" }
+                    new TimetableTrainInfoRow{ Code="5045", CodeColor="Orange", TrainNo="4039M", TrainType="特急", Destination="サンダーバード" },
+                    new TimetableTrainInfoRow{ Code="54", CodeColor="Orange", TrainNo="8545M", TrainType="回送", Destination="" },
+                    new TimetableTrainInfoRow{ Code="57", CodeColor="Blue", TrainNo="3498M", TrainType="新快", Destination="野洲" },
+                    new TimetableTrainInfoRow{ Code="03", CodeColor="Orange", TrainNo="8864レ", TrainType="貨物", Destination="" },
+                    new TimetableTrainInfoRow{ Code="0730", CodeColor="Orange", TrainNo="6752M", TrainType="回送", Destination="" },
+                    new TimetableTrainInfoRow{ Code="12", CodeColor="Blue", TrainNo="3500M", TrainType="新快", Destination="長浜" },
+                    new TimetableTrainInfoRow{ Code="1515", CodeColor="Orange", TrainNo="1042M", TrainType="特急", Destination="はるか" },
+                    new TimetableTrainInfoRow{ Code="2110", CodeColor="Orange", TrainNo="4041M", TrainType="特急", Destination="サンダーバード" },
+                    new TimetableTrainInfoRow{ Code="27", CodeColor="Blue", TrainNo="3502A", TrainType="新快", Destination="野洲" },
+                    new TimetableTrainInfoRow{ Code="3245", CodeColor="Blue", TrainNo="3804M", TrainType="新快", Destination="湖敦賀" }
                 },
                 TopTimes = new[]
                 {
-                    new TimetableTimeRow{ Time4="5255", Highlight=true, TrainNo="8027", TypeAndDestination="下牧・米原", NoteBlue="4+2", NoteRed="" },
+                    new TimetableTimeRow{ Time4="5255", Highlight=true, TrainNo="8027", TypeAndDestination="T快・米原", NoteBlue="4+2", NoteRed="" },
                     new TimetableTimeRow{ Time4="5800", Highlight=false, TrainNo="206C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
                     new TimetableTimeRow{ Time4="0450", Highlight=false, TrainNo="1190C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="0755", Highlight=true, TrainNo="804T", TypeAndDestination="下牧・米原", NoteBlue="", NoteRed="" },
+                    new TimetableTimeRow{ Time4="0755", Highlight=true, TrainNo="804T", TypeAndDestination="T快・米原", NoteBlue="", NoteRed="" },
                     new TimetableTimeRow{ Time4="1350", Highlight=false, TrainNo="208C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
                     new TimetableTimeRow{ Time4="1950", Highlight=false, TrainNo="1192C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="2255", Highlight=true, TrainNo="806T", TypeAndDestination="下牧・米原", NoteBlue="+6", NoteRed="" },
+                    new TimetableTimeRow{ Time4="2255", Highlight=true, TrainNo="806T", TypeAndDestination="T快・米原", NoteBlue="+6", NoteRed="" },
                     new TimetableTimeRow{ Time4="2850", Highlight=false, TrainNo="210C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
                     new TimetableTimeRow{ Time4="3450", Highlight=false, TrainNo="1194C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="3835", Highlight=true, TrainNo="808T", TypeAndDestination="下牧・長浜", NoteBlue="", NoteRed="" }
+                    new TimetableTimeRow{ Time4="3835", Highlight=true, TrainNo="808T", TypeAndDestination="T快・長浜", NoteBlue="", NoteRed="" }
                 },
                 MidInfo = new[]
                 {
-                    new TimetableTrainInfoRow{ Code="(42)", CodeColor="Blue", TrainNo="3506M", TrainType="新快", Destination="琵琶賀" },
-                    new TimetableTrainInfoRow{ Code="(4530)", CodeColor="Orange", TrainNo="1044M", TrainType="特急", Destination="はるか" },
-                    new TimetableTrainInfoRow{ Code="(48)", CodeColor="Blue", TrainNo="3508M", TrainType="新快", Destination="野洲" },
-                    new TimetableTrainInfoRow{ Code="(5315)", CodeColor="Orange", TrainNo="4043M", TrainType="特急", Destination="サンダーバード" },
-                    new TimetableTrainInfoRow{ Code="(57)", CodeColor="Blue", TrainNo="3510A", TrainType="新快", Destination="草津" },
-                    new TimetableTrainInfoRow{ Code="(00)", CodeColor="Orange", TrainNo="8088M", TrainType="回送", Destination="" },
-                    new TimetableTrainInfoRow{ Code="(0545)", CodeColor="Orange", TrainNo="1084L", TrainType="貨物", Destination="" },
-                    new TimetableTrainInfoRow{ Code="(09)", CodeColor="Orange", TrainNo="8092D", TrainType="回送", Destination="" },
-                    new TimetableTrainInfoRow{ Code="(12)", CodeColor="Blue", TrainNo="3512M", TrainType="新快", Destination="米原" },
-                    new TimetableTrainInfoRow{ Code="(1515)", CodeColor="Orange", TrainNo="1046M", TrainType="特急", Destination="はるか" }
+                    new TimetableTrainInfoRow{ Code="42", CodeColor="Blue", TrainNo="3506M", TrainType="新快", Destination="琵琶賀" },
+                    new TimetableTrainInfoRow{ Code="4530", CodeColor="Orange", TrainNo="1044M", TrainType="特急", Destination="はるか" },
+                    new TimetableTrainInfoRow{ Code="48", CodeColor="Blue", TrainNo="3508M", TrainType="新快", Destination="野洲" },
+                    new TimetableTrainInfoRow{ Code="5315", CodeColor="Orange", TrainNo="4043M", TrainType="特急", Destination="サンダーバード" },
+                    new TimetableTrainInfoRow{ Code="57", CodeColor="Blue", TrainNo="3510A", TrainType="新快", Destination="草津" },
+                    new TimetableTrainInfoRow{ Code="00", CodeColor="Orange", TrainNo="8088M", TrainType="回送", Destination="" },
+                    new TimetableTrainInfoRow{ Code="0545", CodeColor="Orange", TrainNo="1084レ", TrainType="貨物", Destination="" },
+                    new TimetableTrainInfoRow{ Code="09", CodeColor="Orange", TrainNo="8092D", TrainType="回送", Destination="" },
+                    new TimetableTrainInfoRow{ Code="12", CodeColor="Blue", TrainNo="3512M", TrainType="新快", Destination="米原" },
+                    new TimetableTrainInfoRow{ Code="1515", CodeColor="Orange", TrainNo="1046M", TrainType="特急", Destination="はるか" }
                 },
                 MidTimes = new[]
                 {
                     new TimetableTimeRow{ Time4="4450", Highlight=false, TrainNo="212C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
                     new TimetableTimeRow{ Time4="4950", Highlight=false, TrainNo="1196C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="5335", Highlight=true, TrainNo="810T", TypeAndDestination="下牧・野洲", NoteBlue="T", NoteRed="" },
+                    new TimetableTimeRow{ Time4="5335", Highlight=true, TrainNo="810T", TypeAndDestination="T快・野洲", NoteBlue="T", NoteRed="" },
                     new TimetableTimeRow{ Time4="5950", Highlight=false, TrainNo="214C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
                     new TimetableTimeRow{ Time4="0450", Highlight=false, TrainNo="1198C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="0755", Highlight=true, TrainNo="812T", TypeAndDestination="下牧・米原", NoteBlue="4+6", NoteRed="" },
+                    new TimetableTimeRow{ Time4="0755", Highlight=true, TrainNo="812T", TypeAndDestination="T快・米原", NoteBlue="4+6", NoteRed="" },
                     new TimetableTimeRow{ Time4="1350", Highlight=false, TrainNo="216C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
                     new TimetableTimeRow{ Time4="1950", Highlight=false, TrainNo="1200C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="2255", Highlight=true, TrainNo="814T", TypeAndDestination="下牧・野洲", NoteBlue="4+8", NoteRed="" },
+                    new TimetableTimeRow{ Time4="2255", Highlight=true, TrainNo="814T", TypeAndDestination="T快・野洲", NoteBlue="4+8", NoteRed="" },
                     new TimetableTimeRow{ Time4="2850", Highlight=false, TrainNo="218C", TypeAndDestination="京都", NoteBlue="", NoteRed="" }
                 },
                 BottomInfo = new[]
                 {
-                    new TimetableTrainInfoRow{ Code="(3230)", CodeColor="Orange", TrainNo="1072M", TrainType="特急", Destination="らくラクびわこ" },
-                    new TimetableTrainInfoRow{ Code="(3530)", CodeColor="Orange", TrainNo="5088", TrainType="貨物", Destination="" },
-                    new TimetableTrainInfoRow{ Code="(39)", CodeColor="Blue", TrainNo="4136M", TrainType="回送", Destination="" },
-                    new TimetableTrainInfoRow{ Code="(42)", CodeColor="Blue", TrainNo="3516M", TrainType="新快", Destination="長浜" },
-                    new TimetableTrainInfoRow{ Code="(4530)", CodeColor="Orange", TrainNo="1048M", TrainType="特急", Destination="はるか" },
-                    new TimetableTrainInfoRow{ Code="(4815)", CodeColor="Orange", TrainNo="641D", TrainType="特急", Destination="スーパーはくと" }
+                    new TimetableTrainInfoRow{ Code="3230", CodeColor="Orange", TrainNo="1072M", TrainType="特急", Destination="らくラクびわこ" },
+                    new TimetableTrainInfoRow{ Code="3530", CodeColor="Orange", TrainNo="3088レ", TrainType="貨物", Destination="" },
+                    new TimetableTrainInfoRow{ Code="39", CodeColor="Blue", TrainNo="4136M", TrainType="回送", Destination="" },
+                    new TimetableTrainInfoRow{ Code="42", CodeColor="Blue", TrainNo="3516M", TrainType="新快", Destination="長浜" },
+                    new TimetableTrainInfoRow{ Code="4530", CodeColor="Orange", TrainNo="1048M", TrainType="特急", Destination="はるか" },
+                    new TimetableTrainInfoRow{ Code="4815", CodeColor="Orange", TrainNo="641D", TrainType="特急", Destination="スーパーはくと" }
                 },
                 BottomTimes = new[]
                 {
                     new TimetableTimeRow{ Time4="3450", Highlight=false, TrainNo="220C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="3755", Highlight=true, TrainNo="816T", TypeAndDestination="下牧・米原", NoteBlue="4+4", NoteRed="" },
+                    new TimetableTimeRow{ Time4="3755", Highlight=true, TrainNo="816T", TypeAndDestination="T快・米原", NoteBlue="4+4", NoteRed="" },
                     new TimetableTimeRow{ Time4="4350", Highlight=false, TrainNo="220C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
                     new TimetableTimeRow{ Time4="4950", Highlight=false, TrainNo="1204C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="5255", Highlight=true, TrainNo="818T", TypeAndDestination="下牧・野洲", NoteBlue="4+8", NoteRed="" },
+                    new TimetableTimeRow{ Time4="5255", Highlight=true, TrainNo="818T", TypeAndDestination="T快・野洲", NoteBlue="4+8", NoteRed="" },
                     new TimetableTimeRow{ Time4="5850", Highlight=false, TrainNo="222C", TypeAndDestination="京都", NoteBlue="", NoteRed="" }
                 }
             };

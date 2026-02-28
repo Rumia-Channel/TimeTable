@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -12,6 +13,8 @@ namespace TimeTableApp
         private readonly TextBox _stationBox;
         private readonly TextBox _subtitleBox;
         private readonly TextBox _serviceBox;
+        private readonly ComboBox _dutyBox;
+        private readonly ComboBox _directionBox;
         private readonly NumericUpDown _yearBox;
         private readonly NumericUpDown _monthBox;
         private readonly NumericUpDown _dayBox;
@@ -22,12 +25,8 @@ namespace TimeTableApp
         private readonly CheckBox _bottomVerticalCheck;
         private readonly Label _statusLabel;
 
-        private readonly DataGridView _topInfoGrid;
-        private readonly DataGridView _topTimeGrid;
-        private readonly DataGridView _midInfoGrid;
-        private readonly DataGridView _midTimeGrid;
-        private readonly DataGridView _bottomInfoGrid;
-        private readonly DataGridView _bottomTimeGrid;
+        private readonly DataGridView _subHomeInfoGrid;
+        private readonly DataGridView _mainHomeTimeGrid;
 
         public MainForm()
         {
@@ -79,6 +78,9 @@ namespace TimeTableApp
             _stationBox = CreateTextBox(80);
             _subtitleBox = CreateTextBox(520);
             _serviceBox = CreateTextBox(110);
+            _serviceBox.ReadOnly = true;
+            _dutyBox = CreateChoiceBox(70, "朝", "夕");
+            _directionBox = CreateChoiceBox(70, "上り", "下り");
             _yearBox = CreateDatePartBox(2000, 2100, 2025, 70);
             _monthBox = CreateDatePartBox(1, 12, 3, 45);
             _dayBox = CreateDatePartBox(1, 31, 15, 45);
@@ -115,42 +117,28 @@ namespace TimeTableApp
 
             AddLabeled(headPanel, "駅名", _stationBox);
             AddLabeled(headPanel, "副題", _subtitleBox);
+            AddLabeled(headPanel, "勤務", _dutyBox);
+            AddLabeled(headPanel, "方向", _directionBox);
             AddLabeled(headPanel, "黒帯", _serviceBox);
             AddLabeled(headPanel, "改正日", revisedDatePanel);
-            AddLabeled(headPanel, "時刻欄ホーム", _platform3Box);
-            AddLabeled(headPanel, "情報欄ホーム", _platform4Box);
+            AddLabeled(headPanel, "メインホーム", _platform3Box);
+            AddLabeled(headPanel, "サブホーム", _platform4Box);
             AddLabeled(headPanel, "幅", _widthBox);
             AddLabeled(headPanel, "高", _heightBox);
             headPanel.Controls.Add(_bottomVerticalCheck);
 
+            _stationBox.TextChanged += ServiceLabelSourceChanged;
+            _dutyBox.SelectedIndexChanged += ServiceLabelSourceChanged;
+            _directionBox.SelectedIndexChanged += ServiceLabelSourceChanged;
+
             var tabs = new TabControl();
             tabs.Dock = DockStyle.Fill;
 
-            _topInfoGrid = CreateInfoGrid(10);
-            _topTimeGrid = CreateTimeGrid(10);
-            _midInfoGrid = CreateInfoGrid(10);
-            _midTimeGrid = CreateTimeGrid(10);
-            _bottomInfoGrid = CreateInfoGrid(6);
-            _bottomTimeGrid = CreateTimeGrid(6);
+            _subHomeInfoGrid = CreateInfoGrid(48);
+            _mainHomeTimeGrid = CreateTimeGrid(48);
 
-            AddGroupTab(
-                tabs,
-                "4番ホーム (Info)",
-                "Top Info",
-                _topInfoGrid,
-                "Mid Info",
-                _midInfoGrid,
-                "Bottom Info",
-                _bottomInfoGrid);
-            AddGroupTab(
-                tabs,
-                "3番ホーム (Time)",
-                "Top Time",
-                _topTimeGrid,
-                "Mid Time",
-                _midTimeGrid,
-                "Bottom Time",
-                _bottomTimeGrid);
+            AddSingleGridTab(tabs, "サブホーム", _subHomeInfoGrid);
+            AddSingleGridTab(tabs, "メインホーム", _mainHomeTimeGrid);
 
             root.Controls.Add(actionPanel, 0, 0);
             root.Controls.Add(headPanel, 0, 1);
@@ -189,6 +177,43 @@ namespace TimeTableApp
 
         private TimetableData BuildDataFromUi()
         {
+            UpdateServiceLabelFromSelection();
+            TimetableTrainInfoRow[] allInfo = TrimInfoRows(ReadInfoRows(_subHomeInfoGrid));
+            TimeInputEntry[] allTimeEntries = ReadTimeInputEntries(ReadTimeRows(_mainHomeTimeGrid));
+
+            TimetableTrainInfoRow[] topInfo;
+            TimetableTrainInfoRow[] midInfo;
+            TimetableTrainInfoRow[] bottomInfo;
+            SplitInfoRowsByLayout(allInfo, (int)_widthBox.Value, (int)_heightBox.Value, out topInfo, out midInfo, out bottomInfo);
+
+            TimeInputEntry[] topEntries;
+            TimeInputEntry[] midEntries;
+            TimeInputEntry[] bottomEntries;
+            SplitTimeEntriesByLayout(allTimeEntries, (int)_widthBox.Value, (int)_heightBox.Value, out topEntries, out midEntries, out bottomEntries);
+
+            TimetableTimeRow[] topTimes;
+            string topLeftHour;
+            int topOverlayColumn;
+            string topOverlayHour;
+            BuildTimeBandFromEntries(topEntries, out topTimes, out topLeftHour, out topOverlayColumn, out topOverlayHour);
+
+            TimetableTimeRow[] midTimes;
+            string midLeftHour;
+            int midOverlayColumn;
+            string midOverlayHour;
+            BuildTimeBandFromEntries(midEntries, out midTimes, out midLeftHour, out midOverlayColumn, out midOverlayHour);
+
+            TimetableTimeRow[] bottomTimes;
+            string bottomLeftHour;
+            int bottomOverlayColumn;
+            string bottomOverlayHour;
+            BuildTimeBandFromEntries(bottomEntries, out bottomTimes, out bottomLeftHour, out bottomOverlayColumn, out bottomOverlayHour);
+
+            if (!string.IsNullOrWhiteSpace(bottomLeftHour) || !string.IsNullOrWhiteSpace(bottomOverlayHour))
+            {
+                _statusLabel.Text = "Bottom の時ラベルは未対応です（Top/Mid のみ反映）。";
+            }
+
             return new TimetableData
             {
                 StationName = _stationBox.Text,
@@ -198,18 +223,18 @@ namespace TimeTableApp
                 Platform3Label = _platform3Box.Text,
                 Platform4Label = _platform4Box.Text,
                 DrawBottomVerticalLines = _bottomVerticalCheck.Checked,
-                TopLeftHour = "17時",
-                TopOverlayColumn = 2,
-                TopOverlayHour = "18時",
-                MidLeftHour = string.Empty,
-                MidOverlayColumn = 4,
-                MidOverlayHour = "19時",
-                TopInfo = ReadInfoRows(_topInfoGrid),
-                TopTimes = ReadTimeRows(_topTimeGrid),
-                MidInfo = ReadInfoRows(_midInfoGrid),
-                MidTimes = ReadTimeRows(_midTimeGrid),
-                BottomInfo = ReadInfoRows(_bottomInfoGrid),
-                BottomTimes = ReadTimeRows(_bottomTimeGrid)
+                TopLeftHour = topLeftHour,
+                TopOverlayColumn = topOverlayColumn,
+                TopOverlayHour = topOverlayHour,
+                MidLeftHour = midLeftHour,
+                MidOverlayColumn = midOverlayColumn,
+                MidOverlayHour = midOverlayHour,
+                TopInfo = topInfo,
+                TopTimes = topTimes,
+                MidInfo = midInfo,
+                MidTimes = midTimes,
+                BottomInfo = bottomInfo,
+                BottomTimes = bottomTimes
             };
         }
 
@@ -217,7 +242,12 @@ namespace TimeTableApp
         {
             _stationBox.Text = data.StationName ?? string.Empty;
             _subtitleBox.Text = data.SubTitle ?? string.Empty;
-            _serviceBox.Text = data.ServiceLabel ?? string.Empty;
+            string duty;
+            string direction;
+            ParseServiceLabel(data.ServiceLabel, out duty, out direction);
+            SelectChoice(_dutyBox, duty);
+            SelectChoice(_directionBox, direction);
+            UpdateServiceLabelFromSelection();
             int year;
             int month;
             int day;
@@ -229,21 +259,28 @@ namespace TimeTableApp
             _platform4Box.Text = data.Platform4Label ?? string.Empty;
             _bottomVerticalCheck.Checked = data.DrawBottomVerticalLines;
 
-            WriteInfoRows(_topInfoGrid, data.TopInfo);
-            WriteTimeRows(_topTimeGrid, data.TopTimes);
-            WriteInfoRows(_midInfoGrid, data.MidInfo);
-            WriteTimeRows(_midTimeGrid, data.MidTimes);
-            WriteInfoRows(_bottomInfoGrid, data.BottomInfo);
-            WriteTimeRows(_bottomTimeGrid, data.BottomTimes);
+            WriteInfoRows(_subHomeInfoGrid, MergeInfoRows(data.TopInfo, data.MidInfo, data.BottomInfo));
+            WriteTimeRows(
+                _mainHomeTimeGrid,
+                MergeTimeRowsWithHourMarkers(
+                    data.TopTimes,
+                    data.MidTimes,
+                    data.BottomTimes,
+                    data.TopLeftHour,
+                    data.TopOverlayColumn,
+                    data.TopOverlayHour,
+                    data.MidLeftHour,
+                    data.MidOverlayColumn,
+                    data.MidOverlayHour));
         }
 
         private static DataGridView CreateInfoGrid(int rows)
         {
             var grid = BaseGrid();
-            grid.Columns.Add("Code", "Code");
+            grid.Columns.Add("Code", "Time");
             var colorCol = new DataGridViewComboBoxColumn();
             colorCol.Name = "CodeColor";
-            colorCol.HeaderText = "CodeColor";
+            colorCol.HeaderText = "TimeColor";
             colorCol.Items.AddRange("Orange", "Blue", "Black", "Red", "Green");
             colorCol.FlatStyle = FlatStyle.Flat;
             grid.Columns.Add(colorCol);
@@ -257,7 +294,7 @@ namespace TimeTableApp
         private static DataGridView CreateTimeGrid(int rows)
         {
             var grid = BaseGrid();
-            grid.Columns.Add("Time4", "Time4");
+            grid.Columns.Add("Time4", "Time/Hour");
             grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Highlight", HeaderText = "Highlight" });
             grid.Columns.Add("TrainNo", "TrainNo");
             grid.Columns.Add("TypeAndDestination", "TypeAndDestination");
@@ -280,48 +317,17 @@ namespace TimeTableApp
             return grid;
         }
 
-        private static void AddGroupTab(
-            TabControl tabs,
-            string tabTitle,
-            string group1Title,
-            Control group1Control,
-            string group2Title,
-            Control group2Control,
-            string group3Title,
-            Control group3Control)
+        private static void AddSingleGridTab(TabControl tabs, string tabTitle, Control gridControl)
         {
             var page = new TabPage(tabTitle);
 
-            var panel = new TableLayoutPanel();
-            panel.Dock = DockStyle.Fill;
-            panel.RowCount = 3;
-            panel.ColumnCount = 1;
-            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 33.333f));
-            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 33.333f));
-            panel.RowStyles.Add(new RowStyle(SizeType.Percent, 33.334f));
+            var group = new GroupBox();
+            group.Text = "入力";
+            group.Dock = DockStyle.Fill;
+            gridControl.Dock = DockStyle.Fill;
+            group.Controls.Add(gridControl);
 
-            var group1 = new GroupBox();
-            group1.Text = group1Title;
-            group1.Dock = DockStyle.Fill;
-            group1Control.Dock = DockStyle.Fill;
-            group1.Controls.Add(group1Control);
-
-            var group2 = new GroupBox();
-            group2.Text = group2Title;
-            group2.Dock = DockStyle.Fill;
-            group2Control.Dock = DockStyle.Fill;
-            group2.Controls.Add(group2Control);
-
-            var group3 = new GroupBox();
-            group3.Text = group3Title;
-            group3.Dock = DockStyle.Fill;
-            group3Control.Dock = DockStyle.Fill;
-            group3.Controls.Add(group3Control);
-
-            panel.Controls.Add(group1, 0, 0);
-            panel.Controls.Add(group2, 0, 1);
-            panel.Controls.Add(group3, 0, 2);
-            page.Controls.Add(panel);
+            page.Controls.Add(group);
             tabs.TabPages.Add(page);
         }
 
@@ -329,6 +335,17 @@ namespace TimeTableApp
         {
             var box = new TextBox();
             box.Width = width;
+            return box;
+        }
+
+        private static ComboBox CreateChoiceBox(int width, string item1, string item2)
+        {
+            var box = new ComboBox();
+            box.DropDownStyle = ComboBoxStyle.DropDownList;
+            box.Width = width;
+            box.Items.Add(item1);
+            box.Items.Add(item2);
+            box.SelectedIndex = 0;
             return box;
         }
 
@@ -397,7 +414,7 @@ namespace TimeTableApp
                 DataGridViewRow r = grid.Rows[i];
                 rows[i] = new TimetableTrainInfoRow
                 {
-                    Code = CellText(r, 0),
+                    Code = NormalizeInfoTimeCode(CellText(r, 0)),
                     CodeColor = CellText(r, 1),
                     TrainNo = CellText(r, 2),
                     TrainType = CellText(r, 3),
@@ -426,6 +443,516 @@ namespace TimeTableApp
             }
 
             return rows;
+        }
+
+        private static TimetableTrainInfoRow[] MergeInfoRows(params TimetableTrainInfoRow[][] groups)
+        {
+            var merged = new List<TimetableTrainInfoRow>();
+            for (int i = 0; i < groups.Length; i++)
+            {
+                TimetableTrainInfoRow[] rows = groups[i];
+                if (rows == null)
+                {
+                    continue;
+                }
+
+                for (int j = 0; j < rows.Length; j++)
+                {
+                    if (rows[j] != null)
+                    {
+                        merged.Add(rows[j]);
+                    }
+                }
+            }
+
+            return merged.ToArray();
+        }
+
+        private static TimetableTimeRow[] MergeTimeRows(params TimetableTimeRow[][] groups)
+        {
+            var merged = new List<TimetableTimeRow>();
+            for (int i = 0; i < groups.Length; i++)
+            {
+                TimetableTimeRow[] rows = groups[i];
+                if (rows == null)
+                {
+                    continue;
+                }
+
+                for (int j = 0; j < rows.Length; j++)
+                {
+                    if (rows[j] != null)
+                    {
+                        merged.Add(rows[j]);
+                    }
+                }
+            }
+
+            return merged.ToArray();
+        }
+
+        private static TimetableTimeRow[] MergeTimeRowsWithHourMarkers(
+            TimetableTimeRow[] topRows,
+            TimetableTimeRow[] midRows,
+            TimetableTimeRow[] bottomRows,
+            string topLeftHour,
+            int topOverlayColumn,
+            string topOverlayHour,
+            string midLeftHour,
+            int midOverlayColumn,
+            string midOverlayHour)
+        {
+            TimeInputEntry[] topEntries = BuildEntriesForBand(topRows, topLeftHour, topOverlayColumn, topOverlayHour);
+            TimeInputEntry[] midEntries = BuildEntriesForBand(midRows, midLeftHour, midOverlayColumn, midOverlayHour);
+            TimeInputEntry[] bottomEntries = BuildEntriesForBand(bottomRows, string.Empty, -1, string.Empty);
+
+            var rows = new List<TimetableTimeRow>();
+            AppendEntriesAsRows(rows, topEntries);
+            AppendEntriesAsRows(rows, midEntries);
+            AppendEntriesAsRows(rows, bottomEntries);
+            return rows.ToArray();
+        }
+
+        private static TimetableTrainInfoRow[] TrimInfoRows(TimetableTrainInfoRow[] rows)
+        {
+            if (rows == null || rows.Length == 0)
+            {
+                return new TimetableTrainInfoRow[0];
+            }
+
+            int last = -1;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                TimetableTrainInfoRow row = rows[i];
+                if (row != null && !IsInfoRowEmpty(row))
+                {
+                    last = i;
+                }
+            }
+
+            if (last < 0)
+            {
+                return new TimetableTrainInfoRow[0];
+            }
+
+            var trimmed = new TimetableTrainInfoRow[last + 1];
+            for (int i = 0; i <= last; i++)
+            {
+                trimmed[i] = rows[i] ?? new TimetableTrainInfoRow();
+            }
+
+            return trimmed;
+        }
+
+        private static TimetableTimeRow[] TrimTimeRows(TimetableTimeRow[] rows)
+        {
+            if (rows == null || rows.Length == 0)
+            {
+                return new TimetableTimeRow[0];
+            }
+
+            int last = -1;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                TimetableTimeRow row = rows[i];
+                if (row != null && !IsTimeRowEmpty(row))
+                {
+                    last = i;
+                }
+            }
+
+            if (last < 0)
+            {
+                return new TimetableTimeRow[0];
+            }
+
+            var trimmed = new TimetableTimeRow[last + 1];
+            for (int i = 0; i <= last; i++)
+            {
+                trimmed[i] = rows[i] ?? new TimetableTimeRow();
+            }
+
+            return trimmed;
+        }
+
+        private static TimeInputEntry[] ReadTimeInputEntries(TimetableTimeRow[] rows)
+        {
+            var entries = new List<TimeInputEntry>();
+            if (rows == null)
+            {
+                return entries.ToArray();
+            }
+
+            for (int i = 0; i < rows.Length; i++)
+            {
+                TimetableTimeRow row = rows[i];
+                if (row == null || IsTimeRowEmpty(row))
+                {
+                    continue;
+                }
+
+                string hourText;
+                if (TryGetHourMarker(row, out hourText))
+                {
+                    entries.Add(new TimeInputEntry { IsHour = true, HourText = hourText, TimeRow = null });
+                }
+                else
+                {
+                    entries.Add(new TimeInputEntry { IsHour = false, HourText = string.Empty, TimeRow = row });
+                }
+            }
+
+            return entries.ToArray();
+        }
+
+        private static void SplitTimeEntriesByLayout(
+            TimeInputEntry[] entries,
+            int width,
+            int height,
+            out TimeInputEntry[] top,
+            out TimeInputEntry[] mid,
+            out TimeInputEntry[] bottom)
+        {
+            int total = entries == null ? 0 : entries.Length;
+            int[] counts = CalculateSectionCounts(width, height, total);
+            top = SliceTimeEntries(entries, 0, counts[0]);
+            mid = SliceTimeEntries(entries, counts[0], counts[1]);
+            bottom = SliceTimeEntries(entries, counts[0] + counts[1], counts[2]);
+        }
+
+        private static TimeInputEntry[] SliceTimeEntries(TimeInputEntry[] entries, int start, int count)
+        {
+            if (count <= 0)
+            {
+                return new TimeInputEntry[0];
+            }
+
+            var result = new TimeInputEntry[count];
+            for (int i = 0; i < count; i++)
+            {
+                int idx = start + i;
+                if (entries != null && idx >= 0 && idx < entries.Length && entries[idx] != null)
+                {
+                    result[i] = entries[idx];
+                }
+                else
+                {
+                    result[i] = new TimeInputEntry { IsHour = false, HourText = string.Empty, TimeRow = new TimetableTimeRow() };
+                }
+            }
+
+            return result;
+        }
+
+        private static void BuildTimeBandFromEntries(
+            TimeInputEntry[] entries,
+            out TimetableTimeRow[] rows,
+            out string leftHour,
+            out int overlayColumn,
+            out string overlayHour)
+        {
+            var times = new List<TimetableTimeRow>();
+            leftHour = string.Empty;
+            overlayColumn = -1;
+            overlayHour = string.Empty;
+
+            if (entries == null || entries.Length == 0)
+            {
+                rows = new TimetableTimeRow[0];
+                return;
+            }
+
+            for (int slot = 0; slot < entries.Length; slot++)
+            {
+                TimeInputEntry entry = entries[slot];
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                if (entry.IsHour)
+                {
+                    if (string.IsNullOrWhiteSpace(leftHour))
+                    {
+                        leftHour = entry.HourText;
+                    }
+                    else if (string.IsNullOrWhiteSpace(overlayHour))
+                    {
+                        overlayHour = entry.HourText;
+                        overlayColumn = slot;
+                    }
+
+                    continue;
+                }
+
+                if (entry.TimeRow != null)
+                {
+                    times.Add(entry.TimeRow);
+                }
+            }
+
+            rows = TrimTimeRows(times.ToArray());
+        }
+
+        private static TimeInputEntry[] BuildEntriesForBand(
+            TimetableTimeRow[] rows,
+            string leftHour,
+            int overlayColumn,
+            string overlayHour)
+        {
+            int rowCount = rows == null ? 0 : rows.Length;
+            int hourCount = (string.IsNullOrWhiteSpace(leftHour) ? 0 : 1) + (string.IsNullOrWhiteSpace(overlayHour) ? 0 : 1);
+            int slotCount = rowCount + hourCount;
+            if (slotCount <= 0)
+            {
+                return new TimeInputEntry[0];
+            }
+
+            var entries = new TimeInputEntry[slotCount];
+            if (!string.IsNullOrWhiteSpace(leftHour))
+            {
+                entries[0] = new TimeInputEntry { IsHour = true, HourText = leftHour };
+            }
+
+            if (!string.IsNullOrWhiteSpace(overlayHour))
+            {
+                int overlaySlot = Clamp(overlayColumn, 0, slotCount - 1);
+                while (overlaySlot < slotCount && entries[overlaySlot] != null)
+                {
+                    overlaySlot++;
+                }
+
+                if (overlaySlot >= slotCount)
+                {
+                    overlaySlot = slotCount - 1;
+                    while (overlaySlot >= 0 && entries[overlaySlot] != null)
+                    {
+                        overlaySlot--;
+                    }
+                }
+
+                if (overlaySlot >= 0)
+                {
+                    entries[overlaySlot] = new TimeInputEntry { IsHour = true, HourText = overlayHour };
+                }
+            }
+
+            int rowIndex = 0;
+            for (int i = 0; i < slotCount; i++)
+            {
+                if (entries[i] != null)
+                {
+                    continue;
+                }
+
+                TimetableTimeRow row = (rows != null && rowIndex < rows.Length && rows[rowIndex] != null)
+                    ? rows[rowIndex]
+                    : new TimetableTimeRow();
+                entries[i] = new TimeInputEntry { IsHour = false, HourText = string.Empty, TimeRow = row };
+                rowIndex++;
+            }
+
+            return entries;
+        }
+
+        private static void AppendEntriesAsRows(List<TimetableTimeRow> target, TimeInputEntry[] entries)
+        {
+            if (target == null || entries == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < entries.Length; i++)
+            {
+                TimeInputEntry entry = entries[i];
+                if (entry == null)
+                {
+                    continue;
+                }
+
+                if (entry.IsHour)
+                {
+                    target.Add(CreateHourMarkerRow(entry.HourText));
+                }
+                else
+                {
+                    target.Add(entry.TimeRow ?? new TimetableTimeRow());
+                }
+            }
+        }
+
+        private static bool IsInfoRowEmpty(TimetableTrainInfoRow row)
+        {
+            return string.IsNullOrWhiteSpace(row.Code)
+                && string.IsNullOrWhiteSpace(row.TrainNo)
+                && string.IsNullOrWhiteSpace(row.TrainType)
+                && string.IsNullOrWhiteSpace(row.Destination);
+        }
+
+        private static bool IsTimeRowEmpty(TimetableTimeRow row)
+        {
+            return string.IsNullOrWhiteSpace(row.Time4)
+                && !row.Highlight
+                && string.IsNullOrWhiteSpace(row.TrainNo)
+                && string.IsNullOrWhiteSpace(row.TypeAndDestination)
+                && string.IsNullOrWhiteSpace(row.NoteBlue)
+                && string.IsNullOrWhiteSpace(row.NoteRed);
+        }
+
+        private static bool TryGetHourMarker(TimetableTimeRow row, out string hourText)
+        {
+            hourText = string.Empty;
+            if (row == null)
+            {
+                return false;
+            }
+
+            if (row.Highlight
+                || !string.IsNullOrWhiteSpace(row.TrainNo)
+                || !string.IsNullOrWhiteSpace(row.TypeAndDestination)
+                || !string.IsNullOrWhiteSpace(row.NoteBlue)
+                || !string.IsNullOrWhiteSpace(row.NoteRed))
+            {
+                return false;
+            }
+
+            Match match = Regex.Match(row.Time4 ?? string.Empty, @"^\s*(\d{1,2})\s*時\s*$");
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            int hour;
+            if (!int.TryParse(match.Groups[1].Value, out hour))
+            {
+                return false;
+            }
+
+            hourText = hour.ToString() + "時";
+            return true;
+        }
+
+        private static void SplitInfoRowsByLayout(
+            TimetableTrainInfoRow[] rows,
+            int width,
+            int height,
+            out TimetableTrainInfoRow[] top,
+            out TimetableTrainInfoRow[] mid,
+            out TimetableTrainInfoRow[] bottom)
+        {
+            int[] counts = CalculateSectionCounts(width, height, rows == null ? 0 : rows.Length);
+            top = SliceInfoRows(rows, 0, counts[0]);
+            mid = SliceInfoRows(rows, counts[0], counts[1]);
+            bottom = SliceInfoRows(rows, counts[0] + counts[1], counts[2]);
+        }
+
+        private static TimetableTrainInfoRow[] SliceInfoRows(TimetableTrainInfoRow[] rows, int start, int count)
+        {
+            if (count <= 0)
+            {
+                return new TimetableTrainInfoRow[0];
+            }
+
+            var result = new TimetableTrainInfoRow[count];
+            for (int i = 0; i < count; i++)
+            {
+                int index = start + i;
+                result[i] = (rows != null && index >= 0 && index < rows.Length && rows[index] != null)
+                    ? rows[index]
+                    : new TimetableTrainInfoRow();
+            }
+
+            return result;
+        }
+
+        private static TimetableTimeRow[] SliceTimeRows(TimetableTimeRow[] rows, int start, int count)
+        {
+            if (count <= 0)
+            {
+                return new TimetableTimeRow[0];
+            }
+
+            var result = new TimetableTimeRow[count];
+            for (int i = 0; i < count; i++)
+            {
+                int index = start + i;
+                result[i] = (rows != null && index >= 0 && index < rows.Length && rows[index] != null)
+                    ? rows[index]
+                    : new TimetableTimeRow();
+            }
+
+            return result;
+        }
+
+        private static int[] CalculateSectionCounts(int width, int height, int totalCount)
+        {
+            var counts = new[] { 0, 0, 0 };
+            if (totalCount <= 0)
+            {
+                return counts;
+            }
+
+            float tableWidth = width * 0.91f;
+            float topBandUsable = tableWidth - (tableWidth * 0.06f) - (tableWidth * 0.024f);
+            float midBandUsable = topBandUsable;
+            float bottomBandWidth = tableWidth * (1f - 0.415f);
+            float bottomBandUsable = bottomBandWidth - (bottomBandWidth * 0.11f) - (bottomBandWidth * 0.024f);
+
+            float[] weights = { Math.Max(1f, topBandUsable), Math.Max(1f, midBandUsable), Math.Max(1f, bottomBandUsable) };
+            return DistributeCounts(totalCount, weights);
+        }
+
+        private static int[] DistributeCounts(int totalCount, float[] weights)
+        {
+            var counts = new[] { 0, 0, 0 };
+            if (totalCount <= 0)
+            {
+                return counts;
+            }
+
+            int seed = Math.Min(3, totalCount);
+            for (int i = 0; i < seed; i++)
+            {
+                counts[i] = 1;
+            }
+
+            int remaining = totalCount - seed;
+            if (remaining <= 0)
+            {
+                return counts;
+            }
+
+            float sum = weights[0] + weights[1] + weights[2];
+            var fractions = new[] { 0f, 0f, 0f };
+            int assigned = 0;
+            for (int i = 0; i < 3; i++)
+            {
+                float exact = remaining * (weights[i] / sum);
+                int add = (int)Math.Floor(exact);
+                counts[i] += add;
+                assigned += add;
+                fractions[i] = exact - add;
+            }
+
+            int left = remaining - assigned;
+            while (left > 0)
+            {
+                int pick = 0;
+                if (fractions[1] > fractions[pick])
+                {
+                    pick = 1;
+                }
+                if (fractions[2] > fractions[pick])
+                {
+                    pick = 2;
+                }
+
+                counts[pick]++;
+                fractions[pick] = -1f;
+                left--;
+            }
+
+            return counts;
         }
 
         private static string CellText(DataGridViewRow row, int index)
@@ -511,6 +1038,100 @@ namespace TimeTableApp
             }
 
             return value;
+        }
+
+        private static string NormalizeInfoTimeCode(string raw)
+        {
+            string value = (raw ?? string.Empty).Trim();
+            if (value.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            string digits = Regex.Replace(value, @"\D", string.Empty);
+            if (digits.Length == 0)
+            {
+                return value;
+            }
+
+            if (digits.Length >= 4)
+            {
+                digits = digits.Substring(0, 4);
+            }
+            else
+            {
+                digits = digits.PadLeft(4, '0');
+            }
+
+            return "(" + digits + ")";
+        }
+
+        private static TimetableTimeRow CreateHourMarkerRow(string text)
+        {
+            return new TimetableTimeRow
+            {
+                Time4 = text ?? string.Empty,
+                Highlight = false,
+                TrainNo = string.Empty,
+                TypeAndDestination = string.Empty,
+                NoteBlue = string.Empty,
+                NoteRed = string.Empty
+            };
+        }
+
+        private void ServiceLabelSourceChanged(object sender, EventArgs e)
+        {
+            UpdateServiceLabelFromSelection();
+        }
+
+        private void UpdateServiceLabelFromSelection()
+        {
+            string station = NormalizeStationForService(_stationBox.Text);
+            string duty = _dutyBox.SelectedItem == null ? "夕" : _dutyBox.SelectedItem.ToString();
+            string direction = _directionBox.SelectedItem == null ? "上り" : _directionBox.SelectedItem.ToString();
+            _serviceBox.Text = station + duty + direction;
+        }
+
+        private static string NormalizeStationForService(string station)
+        {
+            string value = Regex.Replace((station ?? string.Empty).Trim(), @"\s+", string.Empty);
+            if (value.EndsWith("駅", StringComparison.Ordinal))
+            {
+                value = value.Substring(0, value.Length - 1);
+            }
+
+            return value;
+        }
+
+        private static void ParseServiceLabel(string raw, out string duty, out string direction)
+        {
+            string value = raw ?? string.Empty;
+            duty = value.Contains("朝") ? "朝" : "夕";
+            direction = value.Contains("下り") ? "下り" : "上り";
+        }
+
+        private static void SelectChoice(ComboBox box, string value)
+        {
+            for (int i = 0; i < box.Items.Count; i++)
+            {
+                if (string.Equals(box.Items[i].ToString(), value, StringComparison.Ordinal))
+                {
+                    box.SelectedIndex = i;
+                    return;
+                }
+            }
+
+            if (box.Items.Count > 0 && box.SelectedIndex < 0)
+            {
+                box.SelectedIndex = 0;
+            }
+        }
+
+        private sealed class TimeInputEntry
+        {
+            public bool IsHour;
+            public string HourText;
+            public TimetableTimeRow TimeRow;
         }
     }
 }
