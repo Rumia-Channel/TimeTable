@@ -8,7 +8,7 @@ namespace TimeTableApp
 {
     public static class TimetableRenderer
     {
-        private const float VisualScale = 0.95f;
+        private const float VisualScale = 1.00f;
         private static readonly Color CBlack = Color.FromArgb(0, 0, 0);
         private static readonly Color CGreen = Color.FromArgb(31, 122, 31);
         private static readonly Color COrange = Color.FromArgb(192, 87, 0);
@@ -38,10 +38,10 @@ namespace TimeTableApp
                 g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
 
                 RectangleF table = new RectangleF(
-                    width * 0.045f,
-                    height * 0.165f,
-                    width * 0.90f,
-                    height * 0.70f);
+                    width * 0.015f,
+                    height * 0.085f,
+                    width * 0.97f,
+                    height * 0.83f);
 
                 GraphicsState state = g.Save();
                 if (Math.Abs(VisualScale - 1f) > 0.0001f)

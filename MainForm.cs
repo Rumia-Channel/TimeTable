@@ -918,7 +918,7 @@ namespace TimeTableApp
                 return counts;
             }
 
-            float tableWidth = width * 0.91f;
+            float tableWidth = width * 0.97f;
             float topBandUsable = tableWidth - (tableWidth * 0.06f) - (tableWidth * 0.024f);
             float midBandUsable = topBandUsable;
             float bottomBandWidth = tableWidth * (1f - 0.415f);
