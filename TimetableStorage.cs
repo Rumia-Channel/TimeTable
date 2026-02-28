@@ -77,7 +77,24 @@ namespace TimeTableApp
                 XmlSerializer serializer = new XmlSerializer(typeof(TimetableData));
                 using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    return serializer.Deserialize(fs) as TimetableData;
+                    TimetableData data = serializer.Deserialize(fs) as TimetableData;
+                    if (data != null)
+                    {
+                        if (data.ContentTextScale <= 0f)
+                        {
+                            data.ContentTextScale = 0.95f;
+                        }
+                        else if (data.ContentTextScale < 0.50f)
+                        {
+                            data.ContentTextScale = 0.50f;
+                        }
+                        else if (data.ContentTextScale > 1.50f)
+                        {
+                            data.ContentTextScale = 1.50f;
+                        }
+                    }
+
+                    return data;
                 }
             }
             catch

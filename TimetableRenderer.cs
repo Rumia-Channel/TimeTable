@@ -29,6 +29,7 @@ namespace TimeTableApp
             {
                 data = TimetableData.CreateDefault();
             }
+            float contentTextScale = NormalizeContentTextScale(data.ContentTextScale);
 
             Bitmap bmp = new Bitmap(width, height);
             using (Graphics g = Graphics.FromImage(bmp))
@@ -101,10 +102,10 @@ namespace TimeTableApp
                 int midTimeCount = Math.Max(1, SafeLength(data.MidTimes) + CountOverlaySlots(data.MidOverlayHour));
                 int bottomInfoCount = Math.Max(1, SafeLength(data.BottomInfo));
                 int bottomTimeCount = Math.Max(1, SafeLength(data.BottomTimes));
-                DrawInfoBand(g, topInfoBand, labelW, topInfoCount, data.TopInfo, badge4);
-                DrawTimeBand(g, topTimeBand, labelW, topTimeCount, data.TopTimes, badge3, data.TopLeftHour, data.TopOverlayColumn, data.TopOverlayHour);
-                DrawInfoBand(g, midInfoBand, labelW, midInfoCount, data.MidInfo, badge4);
-                DrawTimeBand(g, midTimeBand, labelW, midTimeCount, data.MidTimes, badge3, data.MidLeftHour, data.MidOverlayColumn, data.MidOverlayHour);
+                DrawInfoBand(g, topInfoBand, labelW, topInfoCount, data.TopInfo, badge4, contentTextScale);
+                DrawTimeBand(g, topTimeBand, labelW, topTimeCount, data.TopTimes, badge3, data.TopLeftHour, data.TopOverlayColumn, data.TopOverlayHour, contentTextScale);
+                DrawInfoBand(g, midInfoBand, labelW, midInfoCount, data.MidInfo, badge4, contentTextScale);
+                DrawTimeBand(g, midTimeBand, labelW, midTimeCount, data.MidTimes, badge3, data.MidLeftHour, data.MidOverlayColumn, data.MidOverlayHour, contentTextScale);
 
                 float miniLabelW = leftBottom.Width * 0.11f;
 
@@ -113,8 +114,8 @@ namespace TimeTableApp
                     DrawMiniBandGrid(g, leftBottom, miniLabelW, lwThin, Math.Max(bottomInfoCount, bottomTimeCount));
                 }
 
-                DrawInfoBand(g, leftBottomTop, miniLabelW, bottomInfoCount, data.BottomInfo, badge4);
-                DrawTimeBand(g, leftBottomBottom, miniLabelW, bottomTimeCount, data.BottomTimes, badge3, string.Empty, -1, string.Empty);
+                DrawInfoBand(g, leftBottomTop, miniLabelW, bottomInfoCount, data.BottomInfo, badge4, contentTextScale);
+                DrawTimeBand(g, leftBottomBottom, miniLabelW, bottomTimeCount, data.BottomTimes, badge3, string.Empty, -1, string.Empty, contentTextScale);
                 DrawRightNotes(g, rightBottom);
                 g.Restore(state);
             }
@@ -150,15 +151,15 @@ namespace TimeTableApp
             }
         }
 
-        private static void DrawInfoBand(Graphics g, RectangleF band, float labelW, int count, TimetableTrainInfoRow[] rows, string badge)
+        private static void DrawInfoBand(Graphics g, RectangleF band, float labelW, int count, TimetableTrainInfoRow[] rows, string badge, float contentTextScale)
         {
-            DrawBadge(g, new RectangleF(band.Left, band.Top, labelW, band.Height), badge);
+            DrawBadge(g, new RectangleF(band.Left, band.Top, labelW, band.Height), badge, contentTextScale);
 
             RectangleF[] cols = BuildCols(band, labelW, count);
-            using (Font fCode = FontFor(band.Height * 0.16f, FontStyle.Bold))
-            using (Font fNo = FontFor(band.Height * 0.19f, FontStyle.Regular))
-            using (Font fType = FontFor(band.Height * 0.22f, FontStyle.Bold))
-            using (Font fDst = FontFor(band.Height * 0.18f, FontStyle.Regular))
+            using (Font fCode = FontFor(band.Height * 0.16f * contentTextScale, FontStyle.Bold))
+            using (Font fNo = FontFor(band.Height * 0.19f * contentTextScale, FontStyle.Regular))
+            using (Font fType = FontFor(band.Height * 0.22f * contentTextScale, FontStyle.Bold))
+            using (Font fDst = FontFor(band.Height * 0.18f * contentTextScale, FontStyle.Regular))
             using (Brush bBlack = new SolidBrush(CBlack))
             {
                 for (int i = 0; i < count; i++)
@@ -166,7 +167,7 @@ namespace TimeTableApp
                     TimetableTrainInfoRow row = GetInfo(rows, i);
                     RectangleF c = cols[i];
                     float y = c.Top + band.Height * 0.01f;
-                    DrawInfoTimeCode(g, new RectangleF(c.Left, y, c.Width, band.Height * 0.2f), row.Code, ParseColor(row.CodeColor, COrange), fCode);
+                    DrawInfoTimeCode(g, new RectangleF(c.Left, y, c.Width, band.Height * 0.2f), row.Code, ParseColor(row.CodeColor, COrange), fCode, contentTextScale);
 
                     y += band.Height * 0.20f;
                     DrawCenterNoEllipsis(g, row.TrainNo, fNo, bBlack, new RectangleF(c.Left, y, c.Width, band.Height * 0.18f), 0.10f);
@@ -178,7 +179,7 @@ namespace TimeTableApp
             }
         }
 
-        private static void DrawInfoTimeCode(Graphics g, RectangleF rect, string raw, Color color, Font fallbackFont)
+        private static void DrawInfoTimeCode(Graphics g, RectangleF rect, string raw, Color color, Font fallbackFont, float contentTextScale)
         {
             string digits = NormalizeInfoCodeTime4(raw);
             using (Brush b = new SolidBrush(color))
@@ -191,9 +192,9 @@ namespace TimeTableApp
 
                 string mm = digits.Substring(0, 2);
                 string ss = digits.Substring(2, 2);
-                using (Font fMM = FontFor(rect.Height * 0.90f, FontStyle.Bold))
-                using (Font fSS = FontFor(rect.Height * 0.62f, FontStyle.Bold))
-                using (Font fParen = FontFor(rect.Height * 0.78f, FontStyle.Bold))
+                using (Font fMM = FontFor(rect.Height * 0.90f * contentTextScale, FontStyle.Bold))
+                using (Font fSS = FontFor(rect.Height * 0.62f * contentTextScale, FontStyle.Bold))
+                using (Font fParen = FontFor(rect.Height * 0.78f * contentTextScale, FontStyle.Bold))
                 {
                     SizeF sL = g.MeasureString("(", fParen, 120, StringFormat.GenericTypographic);
                     SizeF sMM = g.MeasureString(mm, fMM, 120, StringFormat.GenericTypographic);
@@ -216,9 +217,9 @@ namespace TimeTableApp
             }
         }
 
-        private static void DrawTimeBand(Graphics g, RectangleF band, float labelW, int count, TimetableTimeRow[] rows, string badge, string leftHour, int overlayCol, string overlayHour)
+        private static void DrawTimeBand(Graphics g, RectangleF band, float labelW, int count, TimetableTimeRow[] rows, string badge, string leftHour, int overlayCol, string overlayHour, float contentTextScale)
         {
-            DrawBadge(g, new RectangleF(band.Left, band.Top, labelW, band.Height), badge);
+            DrawBadge(g, new RectangleF(band.Left, band.Top, labelW, band.Height), badge, contentTextScale);
 
             bool hasLeftHour = !string.IsNullOrWhiteSpace(leftHour);
             bool hasOverlayHour = overlayCol >= 0 && !string.IsNullOrEmpty(overlayHour);
@@ -227,18 +228,18 @@ namespace TimeTableApp
 
             if (hasLeftHour)
             {
-                DrawHourLabelInSlot(g, band, cols, -1, leftHour);
+                DrawHourLabelInSlot(g, band, cols, -1, leftHour, contentTextScale);
             }
 
             if (hasOverlayHour)
             {
-                DrawHourLabelInSlot(g, band, cols, overlayCol, overlayHour);
+                DrawHourLabelInSlot(g, band, cols, overlayCol, overlayHour, contentTextScale);
             }
 
-            using (Font fMM = FontFor(band.Height * 0.40f, FontStyle.Bold))
-            using (Font fSS = FontFor(band.Height * 0.23f, FontStyle.Bold))
-            using (Font fMid = FontFor(band.Height * 0.19f, FontStyle.Regular))
-            using (Font fNote = FontFor(band.Height * 0.15f, FontStyle.Regular))
+            using (Font fMM = FontFor(band.Height * 0.40f * contentTextScale, FontStyle.Bold))
+            using (Font fSS = FontFor(band.Height * 0.23f * contentTextScale, FontStyle.Bold))
+            using (Font fMid = FontFor(band.Height * 0.19f * contentTextScale, FontStyle.Regular))
+            using (Font fNote = FontFor(band.Height * 0.15f * contentTextScale, FontStyle.Regular))
             using (Brush bBlack = new SolidBrush(CBlack))
             {
                 int timeRowIndex = 0;
@@ -257,10 +258,10 @@ namespace TimeTableApp
                     DrawCenter(g, row.TrainNo, fMid, bBlack, new RectangleF(c.Left, c.Top + band.Height * 0.47f, c.Width, band.Height * 0.18f));
                     DrawCenterNoEllipsis(g, row.TypeAndDestination, fMid, bBlack, new RectangleF(c.Left, c.Top + band.Height * 0.64f, c.Width, band.Height * 0.19f), 0.10f);
 
-                    if (!string.IsNullOrEmpty(row.NoteBlue) || !string.IsNullOrEmpty(row.NoteRed))
+                    if (!string.IsNullOrEmpty(row.NoteBlue) || !string.IsNullOrEmpty(row.NoteRed) || row.UreSeat)
                     {
                         float noteY = c.Bottom - fNote.Height - band.Height * 0.02f;
-                        DrawNote(g, c, noteY, fNote, row.NoteBlue, row.NoteRed);
+                        DrawNote(g, c, noteY, fNote, row.NoteBlue, row.NoteRed, row.UreSeat);
                     }
                 }
             }
@@ -310,7 +311,7 @@ namespace TimeTableApp
             return d4;
         }
 
-        private static void DrawHourLabelInSlot(Graphics g, RectangleF band, RectangleF[] cols, int slot, string text)
+        private static void DrawHourLabelInSlot(Graphics g, RectangleF band, RectangleF[] cols, int slot, string text, float contentTextScale)
         {
             if (cols == null || cols.Length == 0 || string.IsNullOrWhiteSpace(text))
             {
@@ -348,10 +349,10 @@ namespace TimeTableApp
             float h = band.Height * 0.22f;
             float baselineBottom = band.Top + band.Height * 0.46f;
             float y = baselineBottom - h;
-            DrawHourText(g, text, new RectangleF(x, y, colW, h), band.Height);
+            DrawHourText(g, text, new RectangleF(x, y, colW, h), band.Height, contentTextScale);
         }
 
-        private static void DrawHourText(Graphics g, string text, RectangleF rect, float bandHeight)
+        private static void DrawHourText(Graphics g, string text, RectangleF rect, float bandHeight, float contentTextScale)
         {
             string value = text ?? string.Empty;
             using (Brush b = new SolidBrush(CBlack))
@@ -362,7 +363,7 @@ namespace TimeTableApp
                 sf.Trimming = StringTrimming.None;
                 sf.FormatFlags = StringFormatFlags.NoWrap;
 
-                float size = Math.Max(6f, bandHeight * 0.20f);
+                float size = Math.Max(6f, bandHeight * 0.20f * contentTextScale);
                 float min = 3f;
                 Font picked = null;
                 for (int i = 0; i < 36; i++)
@@ -479,35 +480,71 @@ namespace TimeTableApp
             return x + s.Width;
         }
 
-        private static void DrawNote(Graphics g, RectangleF c, float y, Font f, string blue, string red)
+        private static void DrawNote(Graphics g, RectangleF c, float y, Font f, string blue, string red, bool ureSeat)
         {
-            if (string.IsNullOrEmpty(blue))
+            string ure = ureSeat ? "(うれしート)" : string.Empty;
+            bool hasBlue = !string.IsNullOrEmpty(blue);
+            bool hasRed = !string.IsNullOrEmpty(red);
+            bool hasUre = !string.IsNullOrEmpty(ure);
+            if (!hasBlue && !hasRed && !hasUre)
             {
-                using (Brush b = new SolidBrush(CRed))
-                {
-                    DrawCenter(g, red, f, b, new RectangleF(c.Left, y, c.Width, f.Height + 2f));
-                }
                 return;
             }
 
-            if (string.IsNullOrEmpty(red))
+            float wBlue = 0f;
+            float wRed = 0f;
+            float wUre = 0f;
+            int partCount = 0;
+            if (hasBlue)
             {
-                using (Brush b = new SolidBrush(CBlue))
-                {
-                    DrawCenter(g, blue, f, b, new RectangleF(c.Left, y, c.Width, f.Height + 2f));
-                }
-                return;
+                wBlue = g.MeasureString(blue, f, 500, StringFormat.GenericTypographic).Width;
+                partCount++;
+            }
+            if (hasRed)
+            {
+                wRed = g.MeasureString(red, f, 500, StringFormat.GenericTypographic).Width;
+                partCount++;
+            }
+            if (hasUre)
+            {
+                wUre = g.MeasureString(ure, f, 500, StringFormat.GenericTypographic).Width;
+                partCount++;
             }
 
-            SizeF sb = g.MeasureString(blue, f, 500, StringFormat.GenericTypographic);
-            SizeF sr = g.MeasureString(red, f, 500, StringFormat.GenericTypographic);
-            float total = sb.Width + sr.Width + 2f;
+            float gap = 2f;
+            float total = wBlue + wRed + wUre + gap * Math.Max(0, partCount - 1);
             float x = c.Left + (c.Width - total) * 0.5f;
             using (Brush bb = new SolidBrush(CBlue))
             using (Brush br = new SolidBrush(CRed))
+            using (Brush bo = new SolidBrush(COrange))
             {
-                g.DrawString(blue, f, bb, x, y, StringFormat.GenericTypographic);
-                g.DrawString(red, f, br, x + sb.Width + 2f, y, StringFormat.GenericTypographic);
+                bool hasPrev = false;
+                if (hasBlue)
+                {
+                    g.DrawString(blue, f, bb, x, y, StringFormat.GenericTypographic);
+                    x += wBlue;
+                    hasPrev = true;
+                }
+
+                if (hasRed)
+                {
+                    if (hasPrev)
+                    {
+                        x += gap;
+                    }
+                    g.DrawString(red, f, br, x, y, StringFormat.GenericTypographic);
+                    x += wRed;
+                    hasPrev = true;
+                }
+
+                if (hasUre)
+                {
+                    if (hasPrev)
+                    {
+                        x += gap;
+                    }
+                    g.DrawString(ure, f, bo, x, y, StringFormat.GenericTypographic);
+                }
             }
         }
 
@@ -599,13 +636,33 @@ namespace TimeTableApp
             return cols;
         }
 
-        private static void DrawBadge(Graphics g, RectangleF rect, string platformText)
+        private static void DrawBadge(Graphics g, RectangleF rect, string platformText, float contentTextScale)
         {
             using (Brush black = new SolidBrush(CBlack))
-            using (Font badgeFont = FontFor(rect.Height * 0.19f, FontStyle.Bold))
+            using (Font badgeFont = FontFor(rect.Height * 0.19f * contentTextScale, FontStyle.Bold))
             {
                 DrawCenter(g, platformText ?? string.Empty, badgeFont, black, new RectangleF(rect.Left, rect.Top + rect.Height * 0.04f, rect.Width, rect.Height * 0.24f));
             }
+        }
+
+        private static float NormalizeContentTextScale(float value)
+        {
+            if (value <= 0f)
+            {
+                return 0.95f;
+            }
+
+            if (value < 0.50f)
+            {
+                return 0.50f;
+            }
+
+            if (value > 1.50f)
+            {
+                return 1.50f;
+            }
+
+            return value;
         }
 
         private static void DrawCenter(Graphics g, string text, Font f, Brush b, RectangleF rect)
@@ -828,6 +885,7 @@ namespace TimeTableApp
         public string MidOverlayHour;
 
         public bool DrawBottomVerticalLines;
+        public float ContentTextScale;
 
         public TimetableTrainInfoRow[] TopInfo;
         public TimetableTimeRow[] TopTimes;
@@ -858,6 +916,7 @@ namespace TimeTableApp
                 MidOverlayColumn = -1,
                 MidOverlayHour = string.Empty,
                 DrawBottomVerticalLines = false,
+                ContentTextScale = 0.95f,
                 TopInfo = new TimetableTrainInfoRow[0],
                 TopTimes = new TimetableTimeRow[0],
                 MidInfo = new TimetableTrainInfoRow[0],
@@ -885,5 +944,6 @@ namespace TimeTableApp
         public string TypeAndDestination;
         public string NoteBlue;
         public string NoteRed;
+        public bool UreSeat;
     }
 }

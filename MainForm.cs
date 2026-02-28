@@ -20,6 +20,7 @@ namespace TimeTableApp
         private readonly NumericUpDown _dayBox;
         private readonly TextBox _platform3Box;
         private readonly TextBox _platform4Box;
+        private readonly NumericUpDown _contentTextScaleBox;
         private readonly NumericUpDown _widthBox;
         private readonly NumericUpDown _heightBox;
         private readonly CheckBox _bottomVerticalCheck;
@@ -93,6 +94,13 @@ namespace TimeTableApp
             _dayBox = CreateDatePartBox(1, 31, 15, 45);
             _platform3Box = CreateTextBox(90);
             _platform4Box = CreateTextBox(90);
+            _contentTextScaleBox = new NumericUpDown();
+            _contentTextScaleBox.Minimum = 0.50M;
+            _contentTextScaleBox.Maximum = 1.50M;
+            _contentTextScaleBox.DecimalPlaces = 2;
+            _contentTextScaleBox.Increment = 0.05M;
+            _contentTextScaleBox.Value = 0.95M;
+            _contentTextScaleBox.Width = 70;
 
             var revisedDatePanel = new FlowLayoutPanel();
             revisedDatePanel.AutoSize = true;
@@ -130,6 +138,7 @@ namespace TimeTableApp
             AddLabeled(headPanel, "改正日", revisedDatePanel);
             AddLabeled(headPanel, "メインホーム", _platform3Box);
             AddLabeled(headPanel, "サブホーム", _platform4Box);
+            AddLabeled(headPanel, "内部文字倍率", _contentTextScaleBox);
             AddLabeled(headPanel, "幅", _widthBox);
             AddLabeled(headPanel, "高", _heightBox);
             headPanel.Controls.Add(_bottomVerticalCheck);
@@ -250,6 +259,7 @@ namespace TimeTableApp
                 RevisedDate = FormatRevisedDate((int)_yearBox.Value, (int)_monthBox.Value, (int)_dayBox.Value),
                 Platform3Label = _platform3Box.Text,
                 Platform4Label = _platform4Box.Text,
+                ContentTextScale = (float)_contentTextScaleBox.Value,
                 DrawBottomVerticalLines = _bottomVerticalCheck.Checked,
                 TopLeftHour = topLeftHour,
                 TopOverlayColumn = topOverlayColumn,
@@ -285,6 +295,7 @@ namespace TimeTableApp
             _dayBox.Value = day;
             _platform3Box.Text = data.Platform3Label ?? string.Empty;
             _platform4Box.Text = data.Platform4Label ?? string.Empty;
+            _contentTextScaleBox.Value = ClampScaleValue(data.ContentTextScale);
             _bottomVerticalCheck.Checked = data.DrawBottomVerticalLines;
 
             WriteInfoRows(_subHomeInfoGrid, MergeInfoRows(data.TopInfo, data.MidInfo, data.BottomInfo));
@@ -328,6 +339,7 @@ namespace TimeTableApp
             grid.Columns.Add("TypeAndDestination", "TypeAndDestination");
             grid.Columns.Add("NoteBlue", "NoteBlue");
             grid.Columns.Add("NoteRed", "NoteRed");
+            grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "UreSeat", HeaderText = "Ure-Seat" });
             grid.Rows.Add(rows);
             return grid;
         }
@@ -435,6 +447,7 @@ namespace TimeTableApp
                 grid.Rows[i].Cells[3].Value = row.TypeAndDestination ?? string.Empty;
                 grid.Rows[i].Cells[4].Value = row.NoteBlue ?? string.Empty;
                 grid.Rows[i].Cells[5].Value = row.NoteRed ?? string.Empty;
+                grid.Rows[i].Cells[6].Value = row.UreSeat;
             }
         }
 
@@ -470,7 +483,8 @@ namespace TimeTableApp
                     TrainNo = CellText(r, 2),
                     TypeAndDestination = CellText(r, 3),
                     NoteBlue = CellText(r, 4),
-                    NoteRed = CellText(r, 5)
+                    NoteRed = CellText(r, 5),
+                    UreSeat = CellBool(r, 6)
                 };
             }
 
@@ -822,7 +836,8 @@ namespace TimeTableApp
                 && string.IsNullOrWhiteSpace(row.TrainNo)
                 && string.IsNullOrWhiteSpace(row.TypeAndDestination)
                 && string.IsNullOrWhiteSpace(row.NoteBlue)
-                && string.IsNullOrWhiteSpace(row.NoteRed);
+                && string.IsNullOrWhiteSpace(row.NoteRed)
+                && !row.UreSeat;
         }
 
         private static bool TryGetHourMarker(TimetableTimeRow row, out string hourText)
@@ -837,7 +852,8 @@ namespace TimeTableApp
                 || !string.IsNullOrWhiteSpace(row.TrainNo)
                 || !string.IsNullOrWhiteSpace(row.TypeAndDestination)
                 || !string.IsNullOrWhiteSpace(row.NoteBlue)
-                || !string.IsNullOrWhiteSpace(row.NoteRed))
+                || !string.IsNullOrWhiteSpace(row.NoteRed)
+                || row.UreSeat)
             {
                 return false;
             }
@@ -1066,6 +1082,26 @@ namespace TimeTableApp
             return value;
         }
 
+        private static decimal ClampScaleValue(float value)
+        {
+            if (value <= 0f)
+            {
+                return 0.95M;
+            }
+
+            decimal scaled = (decimal)value;
+            if (scaled < 0.50M)
+            {
+                scaled = 0.50M;
+            }
+            else if (scaled > 1.50M)
+            {
+                scaled = 1.50M;
+            }
+
+            return Math.Round(scaled / 0.05M, MidpointRounding.AwayFromZero) * 0.05M;
+        }
+
         private static string NormalizeInfoTimeCode(string raw)
         {
             string value = (raw ?? string.Empty).Trim();
@@ -1114,7 +1150,8 @@ namespace TimeTableApp
                 TrainNo = string.Empty,
                 TypeAndDestination = string.Empty,
                 NoteBlue = string.Empty,
-                NoteRed = string.Empty
+                NoteRed = string.Empty,
+                UreSeat = false
             };
         }
 
