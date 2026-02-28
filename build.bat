@@ -31,11 +31,16 @@ echo Using compiler: "%CSC%"
   /reference:System.Drawing.dll ^
   /reference:System.Windows.Forms.dll ^
   "%ROOT%Program.cs" ^
-  "%ROOT%MainForm.cs"
+  "%ROOT%MainForm.cs" ^
+  "%ROOT%TimetableRenderer.cs"
 
 if errorlevel 1 (
     echo [ERROR] Build failed.
     exit /b 1
+)
+
+if exist "%ROOT%Fonts" (
+    xcopy "%ROOT%Fonts" "%OUTDIR%\Fonts\" /E /I /Y >nul
 )
 
 echo [OK] Build succeeded.
