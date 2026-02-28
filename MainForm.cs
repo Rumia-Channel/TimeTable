@@ -652,6 +652,7 @@ namespace TimeTableApp
             out string overlayHour)
         {
             var times = new List<TimetableTimeRow>();
+            var hourSlots = new List<HourSlot>();
             leftHour = string.Empty;
             overlayColumn = -1;
             overlayHour = string.Empty;
@@ -672,22 +673,31 @@ namespace TimeTableApp
 
                 if (entry.IsHour)
                 {
-                    if (string.IsNullOrWhiteSpace(leftHour))
-                    {
-                        leftHour = entry.HourText;
-                    }
-                    else if (string.IsNullOrWhiteSpace(overlayHour))
-                    {
-                        overlayHour = entry.HourText;
-                        overlayColumn = slot;
-                    }
-
+                    hourSlots.Add(new HourSlot { Slot = slot, Text = entry.HourText ?? string.Empty });
                     continue;
                 }
 
                 if (entry.TimeRow != null)
                 {
                     times.Add(entry.TimeRow);
+                }
+            }
+
+            for (int i = 0; i < hourSlots.Count; i++)
+            {
+                HourSlot hs = hourSlots[i];
+                if (hs.Slot == 0 && string.IsNullOrWhiteSpace(leftHour))
+                {
+                    leftHour = hs.Text;
+                }
+                else if (string.IsNullOrWhiteSpace(overlayHour))
+                {
+                    overlayHour = hs.Text;
+                    overlayColumn = hs.Slot;
+                    if (!string.IsNullOrWhiteSpace(leftHour) && overlayColumn > 0)
+                    {
+                        overlayColumn--;
+                    }
                 }
             }
 
@@ -716,7 +726,13 @@ namespace TimeTableApp
 
             if (!string.IsNullOrWhiteSpace(overlayHour))
             {
-                int overlaySlot = Clamp(overlayColumn, 0, slotCount - 1);
+                int overlaySlot = overlayColumn;
+                if (!string.IsNullOrWhiteSpace(leftHour))
+                {
+                    overlaySlot++;
+                }
+
+                overlaySlot = Clamp(overlaySlot, 0, slotCount - 1);
                 while (overlaySlot < slotCount && entries[overlaySlot] != null)
                 {
                     overlaySlot++;
@@ -1132,6 +1148,12 @@ namespace TimeTableApp
             public bool IsHour;
             public string HourText;
             public TimetableTimeRow TimeRow;
+        }
+
+        private sealed class HourSlot
+        {
+            public int Slot;
+            public string Text;
         }
     }
 }

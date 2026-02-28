@@ -8,6 +8,7 @@ namespace TimeTableApp
 {
     public static class TimetableRenderer
     {
+        private const float VisualScale = 0.95f;
         private static readonly Color CBlack = Color.FromArgb(0, 0, 0);
         private static readonly Color CGreen = Color.FromArgb(31, 122, 31);
         private static readonly Color COrange = Color.FromArgb(192, 87, 0);
@@ -41,6 +42,16 @@ namespace TimeTableApp
                     height * 0.165f,
                     width * 0.90f,
                     height * 0.70f);
+
+                GraphicsState state = g.Save();
+                if (Math.Abs(VisualScale - 1f) > 0.0001f)
+                {
+                    float cx = table.Left + table.Width * 0.5f;
+                    float cy = table.Top + table.Height * 0.5f;
+                    g.TranslateTransform(cx, cy);
+                    g.ScaleTransform(VisualScale, VisualScale);
+                    g.TranslateTransform(-cx, -cy);
+                }
 
                 float lwOuter = Math.Max(1.5f, table.Width * 0.0023f);
                 float lwThin = Math.Max(1f, lwOuter * 0.50f);
@@ -85,9 +96,9 @@ namespace TimeTableApp
                 string badge3 = string.IsNullOrWhiteSpace(data.Platform3Label) ? "③" : data.Platform3Label;
                 string badge4 = string.IsNullOrWhiteSpace(data.Platform4Label) ? "④" : data.Platform4Label;
                 int topInfoCount = Math.Max(1, SafeLength(data.TopInfo));
-                int topTimeCount = Math.Max(1, SafeLength(data.TopTimes) + CountHourSlots(data.TopLeftHour, data.TopOverlayHour));
+                int topTimeCount = Math.Max(1, SafeLength(data.TopTimes) + CountOverlaySlots(data.TopOverlayHour));
                 int midInfoCount = Math.Max(1, SafeLength(data.MidInfo));
-                int midTimeCount = Math.Max(1, SafeLength(data.MidTimes) + CountHourSlots(data.MidLeftHour, data.MidOverlayHour));
+                int midTimeCount = Math.Max(1, SafeLength(data.MidTimes) + CountOverlaySlots(data.MidOverlayHour));
                 int bottomInfoCount = Math.Max(1, SafeLength(data.BottomInfo));
                 int bottomTimeCount = Math.Max(1, SafeLength(data.BottomTimes));
                 DrawInfoBand(g, topInfoBand, labelW, topInfoCount, data.TopInfo, badge4);
@@ -105,6 +116,7 @@ namespace TimeTableApp
                 DrawInfoBand(g, leftBottomTop, miniLabelW, bottomInfoCount, data.BottomInfo, badge4);
                 DrawTimeBand(g, leftBottomBottom, miniLabelW, bottomTimeCount, data.BottomTimes, badge3, string.Empty, -1, string.Empty);
                 DrawRightNotes(g, rightBottom);
+                g.Restore(state);
             }
 
             return bmp;
@@ -208,9 +220,10 @@ namespace TimeTableApp
         {
             DrawBadge(g, new RectangleF(band.Left, band.Top, labelW, band.Height), badge);
 
-            RectangleF[] cols = BuildCols(band, labelW, count);
             bool hasLeftHour = !string.IsNullOrWhiteSpace(leftHour);
-            bool hasOverlayHour = overlayCol >= 0 && overlayCol < cols.Length && !string.IsNullOrEmpty(overlayHour);
+            bool hasOverlayHour = overlayCol >= 0 && !string.IsNullOrEmpty(overlayHour);
+            RectangleF[] cols = BuildTimeSlots(band, labelW, count, hasOverlayHour ? overlayCol : -1);
+            hasOverlayHour = hasOverlayHour && overlayCol < cols.Length;
 
             if (hasLeftHour)
             {
@@ -231,9 +244,8 @@ namespace TimeTableApp
                 int timeRowIndex = 0;
                 for (int i = 0; i < count; i++)
                 {
-                    bool reservedByLeft = hasLeftHour && i == 0;
                     bool reservedByOverlay = hasOverlayHour && i == overlayCol;
-                    if (reservedByLeft || reservedByOverlay)
+                    if (reservedByOverlay)
                     {
                         continue;
                     }
@@ -254,6 +266,48 @@ namespace TimeTableApp
             }
         }
 
+        private static RectangleF[] BuildTimeSlots(RectangleF band, float labelW, int count, int overlayCol)
+        {
+            if (count <= 0)
+            {
+                return new RectangleF[0];
+            }
+
+            float px = band.Width * 0.012f;
+            float gap = band.Width * (count >= 10 ? 0.008f : 0.011f);
+            float left = band.Left + labelW + px;
+            float right = band.Right - px;
+            float usable = right - left - gap * (count - 1);
+            if (usable <= 0f)
+            {
+                return BuildCols(band, labelW, count);
+            }
+
+            bool hasOverlay = overlayCol >= 0 && overlayCol < count;
+            float weightSum = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                weightSum += (hasOverlay && i == overlayCol) ? 0.5f : 1f;
+            }
+
+            if (weightSum <= 0f)
+            {
+                return BuildCols(band, labelW, count);
+            }
+
+            float unit = usable / weightSum;
+            RectangleF[] cols = new RectangleF[count];
+            float x = left;
+            for (int i = 0; i < count; i++)
+            {
+                float w = unit * ((hasOverlay && i == overlayCol) ? 0.5f : 1f);
+                cols[i] = new RectangleF(x, band.Top + band.Height * 0.02f, w, band.Height * 0.96f);
+                x += w + gap;
+            }
+
+            return cols;
+        }
+
         private static void DrawHourLabelInSlot(Graphics g, RectangleF band, RectangleF[] cols, int slot, string text)
         {
             if (cols == null || cols.Length == 0 || string.IsNullOrWhiteSpace(text))
@@ -265,6 +319,7 @@ namespace TimeTableApp
             float x;
             if (slot < 0)
             {
+                colW *= 0.5f;
                 float leftSpace = cols[0].Left - band.Left;
                 x = band.Left + (leftSpace - colW) * 0.5f;
                 if (x < band.Left)
@@ -293,19 +348,9 @@ namespace TimeTableApp
             }
         }
 
-        private static int CountHourSlots(string leftHour, string overlayHour)
+        private static int CountOverlaySlots(string overlayHour)
         {
-            int count = 0;
-            if (!string.IsNullOrWhiteSpace(leftHour))
-            {
-                count++;
-            }
-            if (!string.IsNullOrWhiteSpace(overlayHour))
-            {
-                count++;
-            }
-
-            return count;
+            return string.IsNullOrWhiteSpace(overlayHour) ? 0 : 1;
         }
 
         private static void DrawMiniBandGrid(Graphics g, RectangleF band, float labelW, float lwThin, int count)
