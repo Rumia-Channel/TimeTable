@@ -35,6 +35,7 @@ namespace TimeTableApp
             MinimumSize = new Size(1100, 700);
             Width = 1320;
             Height = 820;
+            FormClosing += MainForm_FormClosing;
 
             var root = new TableLayoutPanel();
             root.Dock = DockStyle.Fill;
@@ -55,6 +56,11 @@ namespace TimeTableApp
             saveButton.AutoSize = true;
             saveButton.Click += SaveTimetableButton_Click;
 
+            var saveDataButton = new Button();
+            saveDataButton.Text = "Save Data";
+            saveDataButton.AutoSize = true;
+            saveDataButton.Click += SaveDataButton_Click;
+
             var resetButton = new Button();
             resetButton.Text = "Reset Sample";
             resetButton.AutoSize = true;
@@ -66,6 +72,7 @@ namespace TimeTableApp
             _statusLabel.Text = "Edit timetable data and export image.";
 
             actionPanel.Controls.Add(saveButton);
+            actionPanel.Controls.Add(saveDataButton);
             actionPanel.Controls.Add(resetButton);
             actionPanel.Controls.Add(_statusLabel);
 
@@ -145,7 +152,7 @@ namespace TimeTableApp
             root.Controls.Add(tabs, 0, 2);
             Controls.Add(root);
 
-            LoadDataToUi(TimetableData.CreateDefault());
+            LoadDataToUi(TimetableStorage.LoadStartupData());
         }
 
         private void SaveTimetableButton_Click(object sender, EventArgs e)
@@ -165,14 +172,35 @@ namespace TimeTableApp
                     bitmap.Save(dialog.FileName, GetImageFormatFromPath(dialog.FileName));
                 }
 
-                _statusLabel.Text = "Saved: " + dialog.FileName;
+                TimetableStorage.SaveCurrent(data);
+                _statusLabel.Text = "Saved image + data: " + dialog.FileName;
             }
+        }
+
+        private void SaveDataButton_Click(object sender, EventArgs e)
+        {
+            TimetableData data = BuildDataFromUi();
+            TimetableStorage.SaveCurrent(data);
+            _statusLabel.Text = "Saved data: " + TimetableStorage.CurrentFilePath;
         }
 
         private void ResetButton_Click(object sender, EventArgs e)
         {
-            LoadDataToUi(TimetableData.CreateDefault());
-            _statusLabel.Text = "Reset to sample.";
+            TimetableData data = TimetableStorage.LoadDefaultData();
+            LoadDataToUi(data);
+            TimetableStorage.SaveCurrent(data);
+            _statusLabel.Text = "Reset to default file.";
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            try
+            {
+                TimetableStorage.SaveCurrent(BuildDataFromUi());
+            }
+            catch
+            {
+            }
         }
 
         private TimetableData BuildDataFromUi()

@@ -4,3 +4,6 @@
 *.jpeg
 *.png
 *.bmp
+
+*.xml
+!timetable_default.xml

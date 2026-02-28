@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TimetableData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <StationName>茨木</StationName>
+  <SubTitle>列車発車時刻表（平日 夕方 208C〜818T 上り 高槻・京都方面）</SubTitle>
+  <ServiceLabel>茨木夕上り</ServiceLabel>
+  <RevisedDate>2026年04月14日改正</RevisedDate>
+  <Platform3Label>③</Platform3Label>
+  <Platform4Label>④</Platform4Label>
+  <TopLeftHour>17時</TopLeftHour>
+  <TopOverlayColumn>2</TopOverlayColumn>
+  <TopOverlayHour>18時</TopOverlayHour>
+  <MidLeftHour />
+  <MidOverlayColumn>4</MidOverlayColumn>
+  <MidOverlayHour>19時</MidOverlayHour>
+  <DrawBottomVerticalLines>false</DrawBottomVerticalLines>
+  <TopInfo>
+    <TimetableTrainInfoRow>
+      <Code>(5045)</Code>
+      <CodeColor>Orange</CodeColor>
+      <TrainNo>4039M</TrainNo>
+      <TrainType>特急</TrainType>
+      <Destination>サンダーバード</Destination>
+    </TimetableTrainInfoRow>
+    <TimetableTrainInfoRow>
+      <Code>(57)</Code>
+      <CodeColor>Blue</CodeColor>
+      <TrainNo>3498M</TrainNo>
+      <TrainType>新快</TrainType>
+      <Destination>野洲</Destination>
+    </TimetableTrainInfoRow>
+  </TopInfo>
+  <TopTimes>
+    <TimetableTimeRow>
+      <Time4>5255</Time4>
+      <Highlight>true</Highlight>
+      <TrainNo>8027</TrainNo>
+      <TypeAndDestination>T快・米原</TypeAndDestination>
+      <NoteBlue>4+2</NoteBlue>
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>0450</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>1190C</TrainNo>
+      <TypeAndDestination>高槻</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>0755</Time4>
+      <Highlight>true</Highlight>
+      <TrainNo>804T</TrainNo>
+      <TypeAndDestination>T快・米原</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+  </TopTimes>
+  <MidInfo>
+    <TimetableTrainInfoRow>
+      <Code>(42)</Code>
+      <CodeColor>Blue</CodeColor>
+      <TrainNo>3506M</TrainNo>
+      <TrainType>新快</TrainType>
+      <Destination>琵琶賀</Destination>
+    </TimetableTrainInfoRow>
+    <TimetableTrainInfoRow>
+      <Code>(4530)</Code>
+      <CodeColor>Orange</CodeColor>
+      <TrainNo>1044M</TrainNo>
+      <TrainType>特急</TrainType>
+      <Destination>はるか</Destination>
+    </TimetableTrainInfoRow>
+  </MidInfo>
+  <MidTimes>
+    <TimetableTimeRow>
+      <Time4>4450</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>212C</TrainNo>
+      <TypeAndDestination>京都</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>5335</Time4>
+      <Highlight>true</Highlight>
+      <TrainNo>810T</TrainNo>
+      <TypeAndDestination>T快・野洲</TypeAndDestination>
+      <NoteBlue>T</NoteBlue>
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>5950</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>214C</TrainNo>
+      <TypeAndDestination>京都</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+  </MidTimes>
+  <BottomInfo>
+    <TimetableTrainInfoRow>
+      <Code>(3230)</Code>
+      <CodeColor>Orange</CodeColor>
+      <TrainNo>1072M</TrainNo>
+      <TrainType>特急</TrainType>
+      <Destination>らくラクびわこ</Destination>
+    </TimetableTrainInfoRow>
+  </BottomInfo>
+  <BottomTimes>
+    <TimetableTimeRow>
+      <Time4>3450</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>220C</TrainNo>
+      <TypeAndDestination>高槻</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>3755</Time4>
+      <Highlight>true</Highlight>
+      <TrainNo>816T</TrainNo>
+      <TypeAndDestination>T快・米原</TypeAndDestination>
+      <NoteBlue>4+4</NoteBlue>
+      <NoteRed />
+    </TimetableTimeRow>
+  </BottomTimes>
+</TimetableData>

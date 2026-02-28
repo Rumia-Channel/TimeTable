@@ -32,6 +32,7 @@ echo Using compiler: "%CSC%"
   /reference:System.Windows.Forms.dll ^
   "%ROOT%Program.cs" ^
   "%ROOT%MainForm.cs" ^
+  "%ROOT%TimetableStorage.cs" ^
   "%ROOT%TimetableRenderer.cs"
 
 if errorlevel 1 (
@@ -41,6 +42,10 @@ if errorlevel 1 (
 
 if exist "%ROOT%Fonts" (
     xcopy "%ROOT%Fonts" "%OUTDIR%\Fonts\" /E /I /Y >nul
+)
+
+if exist "%ROOT%Data" (
+    xcopy "%ROOT%Data" "%OUTDIR%\Data\" /E /I /Y >nul
 )
 
 echo [OK] Build succeeded.

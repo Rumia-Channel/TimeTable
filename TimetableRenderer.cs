@@ -820,91 +820,32 @@ namespace TimeTableApp
 
         public static TimetableData CreateDefault()
         {
+            return TimetableStorage.LoadDefaultData();
+        }
+
+        public static TimetableData CreateEmpty()
+        {
             return new TimetableData
             {
-                StationName = "茨木",
-                SubTitle = "列車発車時刻表（平日 夕方 208C〜818T 上り  高槻・京都方面）",
-                ServiceLabel = "茨木夕上り",
-                RevisedDate = "2025年3月15日改正",
+                StationName = string.Empty,
+                SubTitle = string.Empty,
+                ServiceLabel = string.Empty,
+                RevisedDate = string.Empty,
                 Platform3Label = "③",
                 Platform4Label = "④",
-                TopLeftHour = "17時",
-                TopOverlayColumn = 2,
-                TopOverlayHour = "18時",
+                TopLeftHour = string.Empty,
+                TopOverlayColumn = -1,
+                TopOverlayHour = string.Empty,
                 MidLeftHour = string.Empty,
-                MidOverlayColumn = 4,
-                MidOverlayHour = "19時",
+                MidOverlayColumn = -1,
+                MidOverlayHour = string.Empty,
                 DrawBottomVerticalLines = false,
-                TopInfo = new[]
-                {
-                    new TimetableTrainInfoRow{ Code="5045", CodeColor="Orange", TrainNo="4039M", TrainType="特急", Destination="サンダーバード" },
-                    new TimetableTrainInfoRow{ Code="54", CodeColor="Orange", TrainNo="8545M", TrainType="回送", Destination="" },
-                    new TimetableTrainInfoRow{ Code="57", CodeColor="Blue", TrainNo="3498M", TrainType="新快", Destination="野洲" },
-                    new TimetableTrainInfoRow{ Code="03", CodeColor="Orange", TrainNo="8864レ", TrainType="貨物", Destination="" },
-                    new TimetableTrainInfoRow{ Code="0730", CodeColor="Orange", TrainNo="6752M", TrainType="回送", Destination="" },
-                    new TimetableTrainInfoRow{ Code="12", CodeColor="Blue", TrainNo="3500M", TrainType="新快", Destination="長浜" },
-                    new TimetableTrainInfoRow{ Code="1515", CodeColor="Orange", TrainNo="1042M", TrainType="特急", Destination="はるか" },
-                    new TimetableTrainInfoRow{ Code="2110", CodeColor="Orange", TrainNo="4041M", TrainType="特急", Destination="サンダーバード" },
-                    new TimetableTrainInfoRow{ Code="27", CodeColor="Blue", TrainNo="3502A", TrainType="新快", Destination="野洲" },
-                    new TimetableTrainInfoRow{ Code="3245", CodeColor="Blue", TrainNo="3804M", TrainType="新快", Destination="湖敦賀" }
-                },
-                TopTimes = new[]
-                {
-                    new TimetableTimeRow{ Time4="5255", Highlight=true, TrainNo="8027", TypeAndDestination="T快・米原", NoteBlue="4+2", NoteRed="" },
-                    new TimetableTimeRow{ Time4="5800", Highlight=false, TrainNo="206C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="0450", Highlight=false, TrainNo="1190C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="0755", Highlight=true, TrainNo="804T", TypeAndDestination="T快・米原", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="1350", Highlight=false, TrainNo="208C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="1950", Highlight=false, TrainNo="1192C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="2255", Highlight=true, TrainNo="806T", TypeAndDestination="T快・米原", NoteBlue="+6", NoteRed="" },
-                    new TimetableTimeRow{ Time4="2850", Highlight=false, TrainNo="210C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="3450", Highlight=false, TrainNo="1194C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="3835", Highlight=true, TrainNo="808T", TypeAndDestination="T快・長浜", NoteBlue="", NoteRed="" }
-                },
-                MidInfo = new[]
-                {
-                    new TimetableTrainInfoRow{ Code="42", CodeColor="Blue", TrainNo="3506M", TrainType="新快", Destination="琵琶賀" },
-                    new TimetableTrainInfoRow{ Code="4530", CodeColor="Orange", TrainNo="1044M", TrainType="特急", Destination="はるか" },
-                    new TimetableTrainInfoRow{ Code="48", CodeColor="Blue", TrainNo="3508M", TrainType="新快", Destination="野洲" },
-                    new TimetableTrainInfoRow{ Code="5315", CodeColor="Orange", TrainNo="4043M", TrainType="特急", Destination="サンダーバード" },
-                    new TimetableTrainInfoRow{ Code="57", CodeColor="Blue", TrainNo="3510A", TrainType="新快", Destination="草津" },
-                    new TimetableTrainInfoRow{ Code="00", CodeColor="Orange", TrainNo="8088M", TrainType="回送", Destination="" },
-                    new TimetableTrainInfoRow{ Code="0545", CodeColor="Orange", TrainNo="1084レ", TrainType="貨物", Destination="" },
-                    new TimetableTrainInfoRow{ Code="09", CodeColor="Orange", TrainNo="8092D", TrainType="回送", Destination="" },
-                    new TimetableTrainInfoRow{ Code="12", CodeColor="Blue", TrainNo="3512M", TrainType="新快", Destination="米原" },
-                    new TimetableTrainInfoRow{ Code="1515", CodeColor="Orange", TrainNo="1046M", TrainType="特急", Destination="はるか" }
-                },
-                MidTimes = new[]
-                {
-                    new TimetableTimeRow{ Time4="4450", Highlight=false, TrainNo="212C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="4950", Highlight=false, TrainNo="1196C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="5335", Highlight=true, TrainNo="810T", TypeAndDestination="T快・野洲", NoteBlue="T", NoteRed="" },
-                    new TimetableTimeRow{ Time4="5950", Highlight=false, TrainNo="214C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="0450", Highlight=false, TrainNo="1198C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="0755", Highlight=true, TrainNo="812T", TypeAndDestination="T快・米原", NoteBlue="4+6", NoteRed="" },
-                    new TimetableTimeRow{ Time4="1350", Highlight=false, TrainNo="216C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="1950", Highlight=false, TrainNo="1200C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="2255", Highlight=true, TrainNo="814T", TypeAndDestination="T快・野洲", NoteBlue="4+8", NoteRed="" },
-                    new TimetableTimeRow{ Time4="2850", Highlight=false, TrainNo="218C", TypeAndDestination="京都", NoteBlue="", NoteRed="" }
-                },
-                BottomInfo = new[]
-                {
-                    new TimetableTrainInfoRow{ Code="3230", CodeColor="Orange", TrainNo="1072M", TrainType="特急", Destination="らくラクびわこ" },
-                    new TimetableTrainInfoRow{ Code="3530", CodeColor="Orange", TrainNo="3088レ", TrainType="貨物", Destination="" },
-                    new TimetableTrainInfoRow{ Code="39", CodeColor="Blue", TrainNo="4136M", TrainType="回送", Destination="" },
-                    new TimetableTrainInfoRow{ Code="42", CodeColor="Blue", TrainNo="3516M", TrainType="新快", Destination="長浜" },
-                    new TimetableTrainInfoRow{ Code="4530", CodeColor="Orange", TrainNo="1048M", TrainType="特急", Destination="はるか" },
-                    new TimetableTrainInfoRow{ Code="4815", CodeColor="Orange", TrainNo="641D", TrainType="特急", Destination="スーパーはくと" }
-                },
-                BottomTimes = new[]
-                {
-                    new TimetableTimeRow{ Time4="3450", Highlight=false, TrainNo="220C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="3755", Highlight=true, TrainNo="816T", TypeAndDestination="T快・米原", NoteBlue="4+4", NoteRed="" },
-                    new TimetableTimeRow{ Time4="4350", Highlight=false, TrainNo="220C", TypeAndDestination="京都", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="4950", Highlight=false, TrainNo="1204C", TypeAndDestination="高槻", NoteBlue="", NoteRed="" },
-                    new TimetableTimeRow{ Time4="5255", Highlight=true, TrainNo="818T", TypeAndDestination="T快・野洲", NoteBlue="4+8", NoteRed="" },
-                    new TimetableTimeRow{ Time4="5850", Highlight=false, TrainNo="222C", TypeAndDestination="京都", NoteBlue="", NoteRed="" }
-                }
+                TopInfo = new TimetableTrainInfoRow[0],
+                TopTimes = new TimetableTimeRow[0],
+                MidInfo = new TimetableTrainInfoRow[0],
+                MidTimes = new TimetableTimeRow[0],
+                BottomInfo = new TimetableTrainInfoRow[0],
+                BottomTimes = new TimetableTimeRow[0]
             };
         }
     }
