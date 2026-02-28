@@ -319,23 +319,28 @@ namespace TimeTableApp
             float x;
             if (slot < 0)
             {
-                colW *= 0.5f;
-                float leftSpace = cols[0].Left - band.Left;
-                x = band.Left + (leftSpace - colW) * 0.5f;
-                if (x < band.Left)
-                {
-                    x = band.Left;
-                }
+                float leftPad = band.Width * 0.004f;
+                float leftAreaL = band.Left + leftPad;
+                float leftAreaR = cols[0].Left - leftPad;
+                float leftAreaW = Math.Max(1f, leftAreaR - leftAreaL);
+                float desiredW = cols[0].Width * 0.5f;
+                colW = Math.Min(desiredW, leftAreaW * 0.92f);
+                x = leftAreaL + (leftAreaW - colW) * 0.5f;
             }
             else
             {
                 int col = slot;
+                if (col < 0)
+                {
+                    col = 0;
+                }
                 if (col >= cols.Length)
                 {
                     col = cols.Length - 1;
                 }
 
                 x = cols[col].Left;
+                colW = cols[col].Width;
             }
 
             float h = band.Height * 0.22f;
