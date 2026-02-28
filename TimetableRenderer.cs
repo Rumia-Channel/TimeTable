@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
@@ -116,7 +117,7 @@ namespace TimeTableApp
 
                 DrawInfoBand(g, leftBottomTop, miniLabelW, bottomInfoCount, data.BottomInfo, badge4, contentTextScale);
                 DrawTimeBand(g, leftBottomBottom, miniLabelW, bottomTimeCount, data.BottomTimes, badge3, string.Empty, -1, string.Empty, contentTextScale);
-                DrawRightNotes(g, rightBottom);
+                DrawRightNotes(g, rightBottom, data.RemarksText, contentTextScale);
                 g.Restore(state);
             }
 
@@ -422,26 +423,314 @@ namespace TimeTableApp
             return rows == null ? 0 : rows.Length;
         }
 
-        private static void DrawRightNotes(Graphics g, RectangleF right)
+        private static void DrawRightNotes(Graphics g, RectangleF right, string remarksText, float contentTextScale)
         {
-            float x = right.Left + right.Width * 0.04f;
-            float y = right.Top + right.Height * 0.05f;
-            using (Font fHead = FontFor(right.Height * 0.088f, FontStyle.Bold))
-            using (Font fBody = FontFor(right.Height * 0.079f, FontStyle.Regular))
+            string text = (remarksText ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
+            if (string.IsNullOrWhiteSpace(text))
             {
-                y = DrawRunLine(g, x, y, fHead, "【停車駅】  快速：", CBlack, "T 快", CGreen, "  高槻から各駅", CBlack);
-                y += right.Height * 0.02f;
-                y = DrawRunLine(g, x, y, fBody, "高槻での", CBlack, "新快速", CBlue, "乗り換え時間は", CBlack, "3 分以上", CRed);
-                y = DrawRunLine(g, x + right.Width * 0.40f, y, fBody, "遅延時の注意！", CRed);
-                y += right.Height * 0.05f;
-                y = DrawRunLine(g, x, y, fBody, "[xxxxM x 分]：高槻での", CBlack, "新快速", CBlue, "接続時間", CBlack);
-                y += right.Height * 0.05f;
-                y = DrawRunLine(g, x, y, fHead, "【乗車位置】 12 両＝△①〜⑫、10 両＝△①〜⑩、", CBlack);
-                y = DrawRunLine(g, x + right.Width * 0.10f, y, fHead, "8 両＝△①〜⑧、6 両＝△③〜⑧", CBlack);
-                y = DrawRunLine(g, x + right.Width * 0.15f, y, fHead, "C 電＝○①〜⑦　③女性専用車両", CBlack);
-                y += right.Height * 0.055f;
-                DrawRunLine(g, x, y, fHead, "【客扱終了表示】 ", CBlack, "10 両以上の列車", CRed, "（赤字表記）", CBlack);
+                return;
             }
+
+            RectangleF body = new RectangleF(
+                right.Left + right.Width * 0.008f,
+                right.Top + right.Height * 0.02f,
+                right.Width * 0.984f,
+                right.Height * 0.965f);
+
+            string[] lines = text.Split('\n');
+            if (lines.Length == 0)
+            {
+                return;
+            }
+            MarkupRun[][] markupLines = ParseMarkupLines(lines);
+
+            using (Font baseFont = FontFor(right.Height * 0.079f * contentTextScale, FontStyle.Regular))
+            using (Font fitted = CreateFittedFontNoWrapLines(g, markupLines, baseFont, body, 0.30f, 3.00f))
+            {
+                float lineHeight = MeasureTightLineHeight(g, fitted);
+                float totalTextHeight = lineHeight * markupLines.Length;
+                float extraGap = 0f;
+                if (markupLines.Length > 1 && totalTextHeight < body.Height)
+                {
+                    extraGap = (body.Height - totalTextHeight) / (markupLines.Length - 1);
+                }
+
+                float y = body.Top;
+                for (int i = 0; i < markupLines.Length; i++)
+                {
+                    MarkupRun[] runs = markupLines[i];
+                    float x = body.Left;
+                    for (int j = 0; j < runs.Length; j++)
+                    {
+                        string runText = runs[j].Text ?? string.Empty;
+                        if (runText.Length == 0)
+                        {
+                            continue;
+                        }
+
+                        using (Brush b = new SolidBrush(runs[j].Color))
+                        {
+                            g.DrawString(runText, fitted, b, x, y, StringFormat.GenericTypographic);
+                        }
+                        x += g.MeasureString(runText, fitted, 2000, StringFormat.GenericTypographic).Width;
+                    }
+
+                    y += lineHeight;
+                    if (i < markupLines.Length - 1)
+                    {
+                        y += extraGap;
+                    }
+                }
+            }
+        }
+
+        private static bool FitsNoWrapLines(Graphics g, MarkupRun[][] lines, Font font, RectangleF rect)
+        {
+            if (lines == null || lines.Length == 0)
+            {
+                return true;
+            }
+
+            if (rect.Width <= 1f || rect.Height <= 1f)
+            {
+                return false;
+            }
+
+            float lineHeight = MeasureTightLineHeight(g, font);
+            float totalHeight = lineHeight * lines.Length;
+            if (totalHeight > rect.Height * 0.999f)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < lines.Length; i++)
+            {
+                float w = MeasureMarkupLineWidth(g, lines[i], font);
+                if (w > rect.Width)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static Font CreateFittedFontNoWrapLines(Graphics g, MarkupRun[][] lines, Font baseFont, RectangleF rect, float minScale, float maxScale)
+        {
+            float minSize = Math.Max(3f, baseFont.Size * minScale);
+            float maxSize = Math.Max(minSize, baseFont.Size * maxScale);
+            float low = minSize;
+            float high = maxSize;
+
+            Font best = null;
+            for (int i = 0; i < 22; i++)
+            {
+                float size = (low + high) * 0.5f;
+                Font candidate = null;
+                try
+                {
+                    candidate = new Font(baseFont.FontFamily, size, baseFont.Style, baseFont.Unit);
+                    if (FitsNoWrapLines(g, lines, candidate, rect))
+                    {
+                        if (best != null)
+                        {
+                            best.Dispose();
+                        }
+                        best = (Font)candidate.Clone();
+                        low = size;
+                    }
+                    else
+                    {
+                        high = size;
+                    }
+                }
+                catch
+                {
+                    high = size;
+                }
+                finally
+                {
+                    if (candidate != null)
+                    {
+                        candidate.Dispose();
+                    }
+                }
+            }
+
+            if (best != null)
+            {
+                return best;
+            }
+
+            try
+            {
+                return new Font(baseFont.FontFamily, minSize, baseFont.Style, baseFont.Unit);
+            }
+            catch
+            {
+                return (Font)baseFont.Clone();
+            }
+        }
+
+        private static MarkupRun[][] ParseMarkupLines(string[] lines)
+        {
+            if (lines == null || lines.Length == 0)
+            {
+                return new MarkupRun[0][];
+            }
+
+            MarkupRun[][] parsed = new MarkupRun[lines.Length][];
+            for (int i = 0; i < lines.Length; i++)
+            {
+                parsed[i] = ParseMarkupLine(lines[i]);
+            }
+
+            return parsed;
+        }
+
+        private static MarkupRun[] ParseMarkupLine(string line)
+        {
+            string s = line ?? string.Empty;
+            List<MarkupRun> runs = new List<MarkupRun>();
+            int i = 0;
+            while (i < s.Length)
+            {
+                int open = s.IndexOf('{', i);
+                if (open < 0)
+                {
+                    AddMarkupRun(runs, s.Substring(i), CBlack);
+                    break;
+                }
+
+                if (open > i)
+                {
+                    AddMarkupRun(runs, s.Substring(i, open - i), CBlack);
+                }
+
+                int bar = s.IndexOf('|', open + 1);
+                if (bar < 0)
+                {
+                    AddMarkupRun(runs, s.Substring(open), CBlack);
+                    break;
+                }
+
+                int close = s.IndexOf('}', bar + 1);
+                if (close < 0)
+                {
+                    AddMarkupRun(runs, s.Substring(open), CBlack);
+                    break;
+                }
+
+                string colorToken = s.Substring(open + 1, bar - open - 1).Trim();
+                string content = s.Substring(bar + 1, close - bar - 1);
+                Color color;
+                if (TryGetMarkupColor(colorToken, out color))
+                {
+                    AddMarkupRun(runs, content, color);
+                }
+                else
+                {
+                    AddMarkupRun(runs, s.Substring(open, close - open + 1), CBlack);
+                }
+
+                i = close + 1;
+            }
+
+            if (runs.Count == 0)
+            {
+                runs.Add(new MarkupRun { Text = string.Empty, Color = CBlack });
+            }
+
+            return runs.ToArray();
+        }
+
+        private static void AddMarkupRun(List<MarkupRun> runs, string text, Color color)
+        {
+            if (string.IsNullOrEmpty(text))
+            {
+                return;
+            }
+
+            if (runs.Count > 0 && runs[runs.Count - 1].Color.ToArgb() == color.ToArgb())
+            {
+                runs[runs.Count - 1].Text += text;
+                return;
+            }
+
+            runs.Add(new MarkupRun { Text = text, Color = color });
+        }
+
+        private static bool TryGetMarkupColor(string token, out Color color)
+        {
+            string t = (token ?? string.Empty).Trim().ToLowerInvariant();
+            switch (t)
+            {
+                case "blue":
+                case "b":
+                case "青":
+                    color = CBlue;
+                    return true;
+                case "red":
+                case "r":
+                case "赤":
+                    color = CRed;
+                    return true;
+                case "green":
+                case "g":
+                case "緑":
+                    color = CGreen;
+                    return true;
+                case "orange":
+                case "o":
+                case "橙":
+                case "オレンジ":
+                    color = COrange;
+                    return true;
+                default:
+                    color = CBlack;
+                    return false;
+            }
+        }
+
+        private static float MeasureMarkupLineWidth(Graphics g, MarkupRun[] runs, Font font)
+        {
+            if (runs == null || runs.Length == 0)
+            {
+                return 0f;
+            }
+
+            float total = 0f;
+            for (int i = 0; i < runs.Length; i++)
+            {
+                string t = runs[i].Text ?? string.Empty;
+                if (t.Length == 0)
+                {
+                    continue;
+                }
+
+                total += g.MeasureString(t, font, 2000, StringFormat.GenericTypographic).Width;
+            }
+
+            return total;
+        }
+
+        private static float MeasureTightLineHeight(Graphics g, Font font)
+        {
+            try
+            {
+                SizeF s = g.MeasureString("あ", font, 200, StringFormat.GenericTypographic);
+                return Math.Max(1f, s.Height * 1.02f);
+            }
+            catch
+            {
+                return Math.Max(1f, font.GetHeight(g));
+            }
+        }
+
+        private sealed class MarkupRun
+        {
+            public string Text;
+            public Color Color;
         }
 
         private static float DrawRunLine(Graphics g, float x, float y, Font f, string t1, Color c1)
@@ -876,6 +1165,7 @@ namespace TimeTableApp
         public string RevisedDate;
         public string Platform3Label;
         public string Platform4Label;
+        public string RemarksText;
 
         public string TopLeftHour;
         public int TopOverlayColumn;
@@ -909,6 +1199,7 @@ namespace TimeTableApp
                 RevisedDate = string.Empty,
                 Platform3Label = "③",
                 Platform4Label = "④",
+                RemarksText = DefaultRemarksText(),
                 TopLeftHour = string.Empty,
                 TopOverlayColumn = -1,
                 TopOverlayHour = string.Empty,
@@ -924,6 +1215,17 @@ namespace TimeTableApp
                 BottomInfo = new TimetableTrainInfoRow[0],
                 BottomTimes = new TimetableTimeRow[0]
             };
+        }
+
+        public static string DefaultRemarksText()
+        {
+            return
+                "【停車駅】 快速：T快 高槻から各駅\r\n" +
+                "高槻での新快速乗り換え時間は3分以上（遅延時の注意）\r\n" +
+                "[xxxxM x分]：高槻での新快速接続時間\r\n" +
+                "【乗車位置】12両=△①〜⑫、10両=△①〜⑩、8両=△①〜⑧、6両=△③〜⑧\r\n" +
+                "C電=○①〜⑦ ③女性専用車両\r\n" +
+                "【客扱終了表示】10両以上の列車（赤字表記）";
         }
     }
 

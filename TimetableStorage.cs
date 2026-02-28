@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using System.Xml.Serialization;
 
 namespace TimeTableApp
@@ -80,6 +81,12 @@ namespace TimeTableApp
                     TimetableData data = serializer.Deserialize(fs) as TimetableData;
                     if (data != null)
                     {
+                        if (data.RemarksText == null)
+                        {
+                            data.RemarksText = TimetableData.DefaultRemarksText();
+                        }
+                        data.RemarksText = DecodeRemarksNewlines(data.RemarksText);
+
                         if (data.ContentTextScale <= 0f)
                         {
                             data.ContentTextScale = 0.95f;
@@ -106,9 +113,25 @@ namespace TimeTableApp
         private static void Save(string path, TimetableData data)
         {
             XmlSerializer serializer = new XmlSerializer(typeof(TimetableData));
+            string originalRemarks = data == null ? null : data.RemarksText;
+            if (data != null)
+            {
+                data.RemarksText = EncodeRemarksNewlines(data.RemarksText);
+            }
+
             using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                serializer.Serialize(fs, data);
+                try
+                {
+                    serializer.Serialize(fs, data);
+                }
+                finally
+                {
+                    if (data != null)
+                    {
+                        data.RemarksText = originalRemarks;
+                    }
+                }
             }
         }
 
@@ -118,6 +141,59 @@ namespace TimeTableApp
             {
                 Directory.CreateDirectory(DataDirectory);
             }
+        }
+
+        private static string EncodeRemarksNewlines(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            string normalized = value.Replace("\r\n", "\n").Replace('\r', '\n');
+            return normalized.Replace("\\", "\\\\").Replace("\n", "\\n");
+        }
+
+        private static string DecodeRemarksNewlines(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return string.Empty;
+            }
+
+            string s = value;
+            if (s.IndexOf('\\') >= 0)
+            {
+                StringBuilder sb = new StringBuilder(s.Length);
+                for (int i = 0; i < s.Length; i++)
+                {
+                    char ch = s[i];
+                    if (ch == '\\' && i + 1 < s.Length)
+                    {
+                        char next = s[i + 1];
+                        if (next == 'n')
+                        {
+                            sb.Append(Environment.NewLine);
+                            i++;
+                            continue;
+                        }
+
+                        if (next == '\\')
+                        {
+                            sb.Append('\\');
+                            i++;
+                            continue;
+                        }
+                    }
+
+                    sb.Append(ch);
+                }
+
+                s = sb.ToString();
+            }
+
+            s = s.Replace("\r\n", "\n").Replace('\r', '\n');
+            return s.Replace("\n", Environment.NewLine);
         }
     }
 }

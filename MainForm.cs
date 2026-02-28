@@ -28,6 +28,7 @@ namespace TimeTableApp
 
         private readonly DataGridView _subHomeInfoGrid;
         private readonly DataGridView _mainHomeTimeGrid;
+        private readonly TextBox _remarksBox;
 
         public MainForm()
         {
@@ -152,9 +153,17 @@ namespace TimeTableApp
 
             _subHomeInfoGrid = CreateInfoGrid(48);
             _mainHomeTimeGrid = CreateTimeGrid(48);
+            _remarksBox = new TextBox();
+            _remarksBox.Multiline = true;
+            _remarksBox.AcceptsReturn = true;
+            _remarksBox.AcceptsTab = true;
+            _remarksBox.ScrollBars = ScrollBars.Vertical;
+            _remarksBox.WordWrap = true;
+            _remarksBox.Dock = DockStyle.Fill;
 
             AddSingleGridTab(tabs, "サブホーム", _subHomeInfoGrid);
             AddSingleGridTab(tabs, "メインホーム", _mainHomeTimeGrid);
+            AddRemarksTab(tabs, "備考欄", _remarksBox);
 
             root.Controls.Add(actionPanel, 0, 0);
             root.Controls.Add(headPanel, 0, 1);
@@ -260,6 +269,7 @@ namespace TimeTableApp
                 Platform3Label = _platform3Box.Text,
                 Platform4Label = _platform4Box.Text,
                 ContentTextScale = (float)_contentTextScaleBox.Value,
+                RemarksText = _remarksBox.Text ?? string.Empty,
                 DrawBottomVerticalLines = _bottomVerticalCheck.Checked,
                 TopLeftHour = topLeftHour,
                 TopOverlayColumn = topOverlayColumn,
@@ -296,6 +306,7 @@ namespace TimeTableApp
             _platform3Box.Text = data.Platform3Label ?? string.Empty;
             _platform4Box.Text = data.Platform4Label ?? string.Empty;
             _contentTextScaleBox.Value = ClampScaleValue(data.ContentTextScale);
+            _remarksBox.Text = data.RemarksText ?? string.Empty;
             _bottomVerticalCheck.Checked = data.DrawBottomVerticalLines;
 
             WriteInfoRows(_subHomeInfoGrid, MergeInfoRows(data.TopInfo, data.MidInfo, data.BottomInfo));
@@ -370,6 +381,20 @@ namespace TimeTableApp
             group.Dock = DockStyle.Fill;
             gridControl.Dock = DockStyle.Fill;
             group.Controls.Add(gridControl);
+
+            page.Controls.Add(group);
+            tabs.TabPages.Add(page);
+        }
+
+        private static void AddRemarksTab(TabControl tabs, string tabTitle, TextBox remarksBox)
+        {
+            var page = new TabPage(tabTitle);
+
+            var group = new GroupBox();
+            group.Text = "入力";
+            group.Dock = DockStyle.Fill;
+            remarksBox.Dock = DockStyle.Fill;
+            group.Controls.Add(remarksBox);
 
             page.Controls.Add(group);
             tabs.TabPages.Add(page);
