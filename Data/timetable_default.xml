@@ -10,8 +10,8 @@
   <TopOverlayColumn>2</TopOverlayColumn>
   <TopOverlayHour>18時</TopOverlayHour>
   <MidLeftHour />
-  <MidOverlayColumn>-1</MidOverlayColumn>
-  <MidOverlayHour />
+  <MidOverlayColumn>5</MidOverlayColumn>
+  <MidOverlayHour>19時</MidOverlayHour>
   <DrawBottomVerticalLines>false</DrawBottomVerticalLines>
   <TopInfo>
     <TimetableTrainInfoRow>
@@ -103,15 +103,71 @@
     <TimetableTimeRow>
       <Time4>5255</Time4>
       <Highlight>true</Highlight>
-      <TrainNo>8027</TrainNo>
+      <TrainNo>802T</TrainNo>
       <TypeAndDestination>T快・米原</TypeAndDestination>
-      <NoteBlue>4+2</NoteBlue>
+      <NoteBlue>4+4</NoteBlue>
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>5850</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>206C</TrainNo>
+      <TypeAndDestination>京都</TypeAndDestination>
+      <NoteBlue />
       <NoteRed />
     </TimetableTimeRow>
     <TimetableTimeRow>
       <Time4>0450</Time4>
       <Highlight>false</Highlight>
       <TrainNo>1190C</TrainNo>
+      <TypeAndDestination>高槻</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>0755</Time4>
+      <Highlight>true</Highlight>
+      <TrainNo>804T</TrainNo>
+      <TypeAndDestination>T快・米原</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed>4+8</NoteRed>
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>1350</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>208C</TrainNo>
+      <TypeAndDestination>京都</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>1950</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>1192C</TrainNo>
+      <TypeAndDestination>高槻</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>2255</Time4>
+      <Highlight>true</Highlight>
+      <TrainNo>806T</TrainNo>
+      <TypeAndDestination>T快・米原</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed>6+6</NoteRed>
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>2850</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>210C</TrainNo>
+      <TypeAndDestination>京都</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>3450</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>1194C</TrainNo>
       <TypeAndDestination>高槻</TypeAndDestination>
       <NoteBlue />
       <NoteRed />
@@ -205,11 +261,11 @@
   </MidInfo>
   <MidTimes>
     <TimetableTimeRow>
-      <Time4>0755</Time4>
+      <Time4>3835</Time4>
       <Highlight>true</Highlight>
-      <TrainNo>804T</TrainNo>
-      <TypeAndDestination>T快・米原</TypeAndDestination>
-      <NoteBlue />
+      <TrainNo>808T</TrainNo>
+      <TypeAndDestination>T快・長浜</TypeAndDestination>
+      <NoteBlue>8</NoteBlue>
       <NoteRed />
     </TimetableTimeRow>
     <TimetableTimeRow>
@@ -221,11 +277,19 @@
       <NoteRed />
     </TimetableTimeRow>
     <TimetableTimeRow>
+      <Time4>4950</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>1196C</TrainNo>
+      <TypeAndDestination>高槻</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
       <Time4>5335</Time4>
       <Highlight>true</Highlight>
       <TrainNo>810T</TrainNo>
       <TypeAndDestination>T快・野洲</TypeAndDestination>
-      <NoteBlue>T</NoteBlue>
+      <NoteBlue>8</NoteBlue>
       <NoteRed />
     </TimetableTimeRow>
     <TimetableTimeRow>
@@ -235,6 +299,46 @@
       <TypeAndDestination>京都</TypeAndDestination>
       <NoteBlue />
       <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>0450</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>1198C</TrainNo>
+      <TypeAndDestination>高槻</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>0755</Time4>
+      <Highlight>true</Highlight>
+      <TrainNo>812T</TrainNo>
+      <TypeAndDestination>T快・米原</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed>4+6</NoteRed>
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>1350</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>216C</TrainNo>
+      <TypeAndDestination>京都</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>1950</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>1200C</TrainNo>
+      <TypeAndDestination>高槻</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>2255</Time4>
+      <Highlight>true</Highlight>
+      <TrainNo>814T</TrainNo>
+      <TypeAndDestination>T快・野洲</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed>4+8</NoteRed>
     </TimetableTimeRow>
   </MidTimes>
   <BottomInfo>
@@ -290,9 +394,17 @@
   </BottomInfo>
   <BottomTimes>
     <TimetableTimeRow>
+      <Time4>2850</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>218C</TrainNo>
+      <TypeAndDestination>京都</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
       <Time4>3450</Time4>
       <Highlight>false</Highlight>
-      <TrainNo>220C</TrainNo>
+      <TrainNo>1202C</TrainNo>
       <TypeAndDestination>高槻</TypeAndDestination>
       <NoteBlue />
       <NoteRed />
@@ -303,6 +415,38 @@
       <TrainNo>816T</TrainNo>
       <TypeAndDestination>T快・米原</TypeAndDestination>
       <NoteBlue>4+4</NoteBlue>
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>4350</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>220C</TrainNo>
+      <TypeAndDestination>京都</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>4950</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>1204C</TrainNo>
+      <TypeAndDestination>高槻</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed />
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>5255</Time4>
+      <Highlight>true</Highlight>
+      <TrainNo>818T</TrainNo>
+      <TypeAndDestination>T快・野洲</TypeAndDestination>
+      <NoteBlue />
+      <NoteRed>4+8</NoteRed>
+    </TimetableTimeRow>
+    <TimetableTimeRow>
+      <Time4>5950</Time4>
+      <Highlight>false</Highlight>
+      <TrainNo>222C</TrainNo>
+      <TypeAndDestination>京都</TypeAndDestination>
+      <NoteBlue />
       <NoteRed />
     </TimetableTimeRow>
   </BottomTimes>

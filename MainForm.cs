@@ -339,6 +339,10 @@ namespace TimeTableApp
             grid.AllowUserToAddRows = false;
             grid.AllowUserToDeleteRows = false;
             grid.AllowUserToResizeRows = false;
+            grid.ColumnAdded += delegate(object sender, DataGridViewColumnEventArgs e)
+            {
+                e.Column.SortMode = DataGridViewColumnSortMode.NotSortable;
+            };
             grid.RowHeadersWidth = 55;
             grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
             grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;

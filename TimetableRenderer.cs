@@ -169,7 +169,7 @@ namespace TimeTableApp
                     DrawInfoTimeCode(g, new RectangleF(c.Left, y, c.Width, band.Height * 0.2f), row.Code, ParseColor(row.CodeColor, COrange), fCode);
 
                     y += band.Height * 0.20f;
-                    DrawCenter(g, row.TrainNo, fNo, bBlack, new RectangleF(c.Left, y, c.Width, band.Height * 0.18f));
+                    DrawCenterNoEllipsis(g, row.TrainNo, fNo, bBlack, new RectangleF(c.Left, y, c.Width, band.Height * 0.18f), 0.10f);
                     y += band.Height * 0.18f;
                     DrawCenter(g, row.TrainType, fType, bBlack, new RectangleF(c.Left, y, c.Width, band.Height * 0.22f));
                     y += band.Height * 0.22f;
@@ -180,7 +180,7 @@ namespace TimeTableApp
 
         private static void DrawInfoTimeCode(Graphics g, RectangleF rect, string raw, Color color, Font fallbackFont)
         {
-            string digits = NormalizeTime4OrEmpty(raw);
+            string digits = NormalizeInfoCodeTime4(raw);
             using (Brush b = new SolidBrush(color))
             {
                 if (digits.Length == 0)
@@ -264,6 +264,50 @@ namespace TimeTableApp
                     }
                 }
             }
+        }
+
+        private static string NormalizeInfoCodeTime4(string value)
+        {
+            string digits = string.Empty;
+            if (!string.IsNullOrEmpty(value))
+            {
+                for (int i = 0; i < value.Length; i++)
+                {
+                    if (char.IsDigit(value[i]))
+                    {
+                        digits += value[i];
+                    }
+                }
+            }
+
+            if (digits.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            if (digits.Length == 1)
+            {
+                return "0" + digits + "00";
+            }
+
+            if (digits.Length == 2)
+            {
+                return digits + "00";
+            }
+
+            if (digits.Length == 3)
+            {
+                return digits.PadLeft(4, '0');
+            }
+
+            string d4 = digits.Substring(0, 4);
+            // Backward-compat: old bug saved "57" as "0057".
+            if (d4.StartsWith("00", StringComparison.Ordinal) && d4.Substring(2, 2) != "00")
+            {
+                return d4.Substring(2, 2) + "00";
+            }
+
+            return d4;
         }
 
         private static void DrawHourLabelInSlot(Graphics g, RectangleF band, RectangleF[] cols, int slot, string text)
