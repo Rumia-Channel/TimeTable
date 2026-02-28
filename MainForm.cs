@@ -348,8 +348,7 @@ namespace TimeTableApp
             grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Highlight", HeaderText = "Highlight" });
             grid.Columns.Add("TrainNo", "TrainNo");
             grid.Columns.Add("TypeAndDestination", "TypeAndDestination");
-            grid.Columns.Add("NoteBlue", "NoteBlue");
-            grid.Columns.Add("NoteRed", "NoteRed");
+            grid.Columns.Add("Note", "Note");
             grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "UreSeat", HeaderText = "Ure-Seat" });
             grid.Rows.Add(rows);
             return grid;
@@ -470,9 +469,8 @@ namespace TimeTableApp
                 grid.Rows[i].Cells[1].Value = row.Highlight;
                 grid.Rows[i].Cells[2].Value = row.TrainNo ?? string.Empty;
                 grid.Rows[i].Cells[3].Value = row.TypeAndDestination ?? string.Empty;
-                grid.Rows[i].Cells[4].Value = row.NoteBlue ?? string.Empty;
-                grid.Rows[i].Cells[5].Value = row.NoteRed ?? string.Empty;
-                grid.Rows[i].Cells[6].Value = row.UreSeat;
+                grid.Rows[i].Cells[4].Value = UnifiedNoteText(row);
+                grid.Rows[i].Cells[5].Value = row.UreSeat;
             }
         }
 
@@ -507,9 +505,8 @@ namespace TimeTableApp
                     Highlight = CellBool(r, 1),
                     TrainNo = CellText(r, 2),
                     TypeAndDestination = CellText(r, 3),
-                    NoteBlue = CellText(r, 4),
-                    NoteRed = CellText(r, 5),
-                    UreSeat = CellBool(r, 6)
+                    Note = CellText(r, 4),
+                    UreSeat = CellBool(r, 5)
                 };
             }
 
@@ -860,8 +857,7 @@ namespace TimeTableApp
                 && !row.Highlight
                 && string.IsNullOrWhiteSpace(row.TrainNo)
                 && string.IsNullOrWhiteSpace(row.TypeAndDestination)
-                && string.IsNullOrWhiteSpace(row.NoteBlue)
-                && string.IsNullOrWhiteSpace(row.NoteRed)
+                && string.IsNullOrWhiteSpace(row.Note)
                 && !row.UreSeat;
         }
 
@@ -876,8 +872,7 @@ namespace TimeTableApp
             if (row.Highlight
                 || !string.IsNullOrWhiteSpace(row.TrainNo)
                 || !string.IsNullOrWhiteSpace(row.TypeAndDestination)
-                || !string.IsNullOrWhiteSpace(row.NoteBlue)
-                || !string.IsNullOrWhiteSpace(row.NoteRed)
+                || !string.IsNullOrWhiteSpace(row.Note)
                 || row.UreSeat)
             {
                 return false;
@@ -1174,10 +1169,43 @@ namespace TimeTableApp
                 Highlight = false,
                 TrainNo = string.Empty,
                 TypeAndDestination = string.Empty,
-                NoteBlue = string.Empty,
-                NoteRed = string.Empty,
+                Note = string.Empty,
                 UreSeat = false
             };
+        }
+
+        private static string UnifiedNoteText(TimetableTimeRow row)
+        {
+            if (row == null)
+            {
+                return string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(row.Note))
+            {
+                return row.Note;
+            }
+
+            string blue = row.NoteBlue ?? string.Empty;
+            string red = row.NoteRed ?? string.Empty;
+            bool hasBlue = !string.IsNullOrWhiteSpace(blue);
+            bool hasRed = !string.IsNullOrWhiteSpace(red);
+            if (!hasBlue && !hasRed)
+            {
+                return string.Empty;
+            }
+
+            if (hasBlue && hasRed)
+            {
+                return "{blue|" + blue + "}{red|" + red + "}";
+            }
+
+            if (hasBlue)
+            {
+                return "{blue|" + blue + "}";
+            }
+
+            return "{red|" + red + "}";
         }
 
         private void ServiceLabelSourceChanged(object sender, EventArgs e)

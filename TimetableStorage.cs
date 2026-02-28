@@ -99,6 +99,10 @@ namespace TimeTableApp
                         {
                             data.ContentTextScale = 1.50f;
                         }
+
+                        NormalizeTimeNotes(data.TopTimes);
+                        NormalizeTimeNotes(data.MidTimes);
+                        NormalizeTimeNotes(data.BottomTimes);
                     }
 
                     return data;
@@ -194,6 +198,51 @@ namespace TimeTableApp
 
             s = s.Replace("\r\n", "\n").Replace('\r', '\n');
             return s.Replace("\n", Environment.NewLine);
+        }
+
+        private static void NormalizeTimeNotes(TimetableTimeRow[] rows)
+        {
+            if (rows == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < rows.Length; i++)
+            {
+                TimetableTimeRow row = rows[i];
+                if (row == null)
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(row.Note))
+                {
+                    continue;
+                }
+
+                string blue = row.NoteBlue ?? string.Empty;
+                string red = row.NoteRed ?? string.Empty;
+                bool hasBlue = !string.IsNullOrWhiteSpace(blue);
+                bool hasRed = !string.IsNullOrWhiteSpace(red);
+                if (!hasBlue && !hasRed)
+                {
+                    row.Note = string.Empty;
+                    continue;
+                }
+
+                if (hasBlue && hasRed)
+                {
+                    row.Note = "{blue|" + blue + "}{red|" + red + "}";
+                }
+                else if (hasBlue)
+                {
+                    row.Note = "{blue|" + blue + "}";
+                }
+                else
+                {
+                    row.Note = "{red|" + red + "}";
+                }
+            }
         }
     }
 }

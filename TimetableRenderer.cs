@@ -238,9 +238,9 @@ namespace TimeTableApp
             }
 
             using (Font fMM = FontFor(band.Height * 0.40f * contentTextScale, FontStyle.Bold))
-            using (Font fSS = FontFor(band.Height * 0.23f * contentTextScale, FontStyle.Bold))
-            using (Font fMid = FontFor(band.Height * 0.19f * contentTextScale, FontStyle.Regular))
-            using (Font fNote = FontFor(band.Height * 0.15f * contentTextScale, FontStyle.Regular))
+            using (Font fSS = FontFor(band.Height * 0.25f * contentTextScale, FontStyle.Bold))
+            using (Font fMid = FontFor(band.Height * 0.20f * contentTextScale, FontStyle.Regular))
+            using (Font fNote = FontFor(band.Height * 0.135f * contentTextScale, FontStyle.Regular))
             using (Brush bBlack = new SolidBrush(CBlack))
             {
                 int timeRowIndex = 0;
@@ -259,10 +259,11 @@ namespace TimeTableApp
                     DrawCenter(g, row.TrainNo, fMid, bBlack, new RectangleF(c.Left, c.Top + band.Height * 0.47f, c.Width, band.Height * 0.18f));
                     DrawCenterNoEllipsis(g, row.TypeAndDestination, fMid, bBlack, new RectangleF(c.Left, c.Top + band.Height * 0.64f, c.Width, band.Height * 0.19f), 0.10f);
 
-                    if (!string.IsNullOrEmpty(row.NoteBlue) || !string.IsNullOrEmpty(row.NoteRed) || row.UreSeat)
+                    string note = GetUnifiedNote(row);
+                    if (!string.IsNullOrEmpty(note) || row.UreSeat)
                     {
                         float noteY = c.Bottom - fNote.Height - band.Height * 0.02f;
-                        DrawNote(g, c, noteY, fNote, row.NoteBlue, row.NoteRed, row.UreSeat);
+                        DrawNote(g, c, noteY, fNote, note, row.UreSeat);
                     }
                 }
             }
@@ -769,72 +770,84 @@ namespace TimeTableApp
             return x + s.Width;
         }
 
-        private static void DrawNote(Graphics g, RectangleF c, float y, Font f, string blue, string red, bool ureSeat)
+        private static void DrawNote(Graphics g, RectangleF c, float y, Font f, string note, bool ureSeat)
         {
-            string ure = ureSeat ? "(うれしート)" : string.Empty;
-            bool hasBlue = !string.IsNullOrEmpty(blue);
-            bool hasRed = !string.IsNullOrEmpty(red);
-            bool hasUre = !string.IsNullOrEmpty(ure);
-            if (!hasBlue && !hasRed && !hasUre)
+            List<MarkupRun> runs = new List<MarkupRun>(ParseMarkupLine(note ?? string.Empty));
+            for (int i = runs.Count - 1; i >= 0; i--)
+            {
+                if (string.IsNullOrEmpty(runs[i].Text))
+                {
+                    runs.RemoveAt(i);
+                }
+            }
+
+            if (ureSeat)
+            {
+                runs.Add(new MarkupRun { Text = "(うれしート)", Color = COrange });
+            }
+
+            if (runs.Count == 0)
             {
                 return;
             }
 
-            float wBlue = 0f;
-            float wRed = 0f;
-            float wUre = 0f;
-            int partCount = 0;
+            float gap = 2f;
+            float total = 0f;
+            for (int i = 0; i < runs.Count; i++)
+            {
+                total += g.MeasureString(runs[i].Text ?? string.Empty, f, 500, StringFormat.GenericTypographic).Width;
+            }
+            total += gap * Math.Max(0, runs.Count - 1);
+
+            float x = c.Left + (c.Width - total) * 0.5f;
+            for (int i = 0; i < runs.Count; i++)
+            {
+                if (i > 0)
+                {
+                    x += gap;
+                }
+
+                string runText = runs[i].Text ?? string.Empty;
+                using (Brush b = new SolidBrush(runs[i].Color))
+                {
+                    g.DrawString(runText, f, b, x, y, StringFormat.GenericTypographic);
+                }
+                x += g.MeasureString(runText, f, 500, StringFormat.GenericTypographic).Width;
+            }
+        }
+
+        private static string GetUnifiedNote(TimetableTimeRow row)
+        {
+            if (row == null)
+            {
+                return string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(row.Note))
+            {
+                return row.Note;
+            }
+
+            string blue = row.NoteBlue ?? string.Empty;
+            string red = row.NoteRed ?? string.Empty;
+            bool hasBlue = !string.IsNullOrWhiteSpace(blue);
+            bool hasRed = !string.IsNullOrWhiteSpace(red);
+            if (!hasBlue && !hasRed)
+            {
+                return string.Empty;
+            }
+
+            if (hasBlue && hasRed)
+            {
+                return "{blue|" + blue + "}{red|" + red + "}";
+            }
+
             if (hasBlue)
             {
-                wBlue = g.MeasureString(blue, f, 500, StringFormat.GenericTypographic).Width;
-                partCount++;
-            }
-            if (hasRed)
-            {
-                wRed = g.MeasureString(red, f, 500, StringFormat.GenericTypographic).Width;
-                partCount++;
-            }
-            if (hasUre)
-            {
-                wUre = g.MeasureString(ure, f, 500, StringFormat.GenericTypographic).Width;
-                partCount++;
+                return "{blue|" + blue + "}";
             }
 
-            float gap = 2f;
-            float total = wBlue + wRed + wUre + gap * Math.Max(0, partCount - 1);
-            float x = c.Left + (c.Width - total) * 0.5f;
-            using (Brush bb = new SolidBrush(CBlue))
-            using (Brush br = new SolidBrush(CRed))
-            using (Brush bo = new SolidBrush(COrange))
-            {
-                bool hasPrev = false;
-                if (hasBlue)
-                {
-                    g.DrawString(blue, f, bb, x, y, StringFormat.GenericTypographic);
-                    x += wBlue;
-                    hasPrev = true;
-                }
-
-                if (hasRed)
-                {
-                    if (hasPrev)
-                    {
-                        x += gap;
-                    }
-                    g.DrawString(red, f, br, x, y, StringFormat.GenericTypographic);
-                    x += wRed;
-                    hasPrev = true;
-                }
-
-                if (hasUre)
-                {
-                    if (hasPrev)
-                    {
-                        x += gap;
-                    }
-                    g.DrawString(ure, f, bo, x, y, StringFormat.GenericTypographic);
-                }
-            }
+            return "{red|" + red + "}";
         }
 
         private static void DrawTime(Graphics g, RectangleF c, RectangleF band, string time4, Font fMM, Font fSS, Color color)
@@ -1244,6 +1257,7 @@ namespace TimeTableApp
         public bool Highlight;
         public string TrainNo;
         public string TypeAndDestination;
+        public string Note;
         public string NoteBlue;
         public string NoteRed;
         public bool UreSeat;
