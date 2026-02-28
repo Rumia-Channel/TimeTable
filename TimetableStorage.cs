@@ -8,8 +8,10 @@ namespace TimeTableApp
     public static class TimetableStorage
     {
         private const string DataFolderName = "Data";
-        private const string DefaultFileName = "timetable_default.xml";
-        private const string CurrentFileName = "timetable_current.xml";
+        private const string DefaultFileName = "timetable_default.ttd.xml";
+        private const string CurrentFileName = "timetable_current.ttd.xml";
+        private const string LegacyDefaultFileName = "timetable_default.xml";
+        private const string LegacyCurrentFileName = "timetable_current.xml";
 
         public static string DataDirectory
         {
@@ -30,11 +32,25 @@ namespace TimeTableApp
             get { return Path.Combine(DataDirectory, CurrentFileName); }
         }
 
+        public static string LegacyDefaultFilePath
+        {
+            get { return Path.Combine(DataDirectory, LegacyDefaultFileName); }
+        }
+
+        public static string LegacyCurrentFilePath
+        {
+            get { return Path.Combine(DataDirectory, LegacyCurrentFileName); }
+        }
+
         public static TimetableData LoadStartupData()
         {
             EnsureDataDirectory();
 
             TimetableData current = TryLoad(CurrentFilePath);
+            if (current == null)
+            {
+                current = TryLoad(LegacyCurrentFilePath);
+            }
             if (current != null)
             {
                 return current;
@@ -50,6 +66,10 @@ namespace TimeTableApp
             EnsureDataDirectory();
 
             TimetableData data = TryLoad(DefaultFilePath);
+            if (data == null)
+            {
+                data = TryLoad(LegacyDefaultFilePath);
+            }
             if (data != null)
             {
                 return data;
@@ -64,6 +84,27 @@ namespace TimeTableApp
         {
             EnsureDataDirectory();
             Save(CurrentFilePath, data ?? TimetableData.CreateEmpty());
+        }
+
+        public static TimetableData LoadFromFile(string path)
+        {
+            return TryLoad(path);
+        }
+
+        public static void SaveToFile(string path, TimetableData data)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                throw new ArgumentException("Path is empty.", "path");
+            }
+
+            string dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+            {
+                Directory.CreateDirectory(dir);
+            }
+
+            Save(path, data ?? TimetableData.CreateEmpty());
         }
 
         private static TimetableData TryLoad(string path)

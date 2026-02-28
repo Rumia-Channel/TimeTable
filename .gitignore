@@ -6,4 +6,4 @@
 *.bmp
 
 *.xml
-!timetable_default.xml
+!timetable_default.ttd.xml

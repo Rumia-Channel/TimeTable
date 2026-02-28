@@ -63,6 +63,11 @@ namespace TimeTableApp
             saveDataButton.AutoSize = true;
             saveDataButton.Click += SaveDataButton_Click;
 
+            var loadDataButton = new Button();
+            loadDataButton.Text = "Load Data";
+            loadDataButton.AutoSize = true;
+            loadDataButton.Click += LoadDataButton_Click;
+
             var resetButton = new Button();
             resetButton.Text = "Reset Sample";
             resetButton.AutoSize = true;
@@ -75,6 +80,7 @@ namespace TimeTableApp
 
             actionPanel.Controls.Add(saveButton);
             actionPanel.Controls.Add(saveDataButton);
+            actionPanel.Controls.Add(loadDataButton);
             actionPanel.Controls.Add(resetButton);
             actionPanel.Controls.Add(_statusLabel);
 
@@ -197,9 +203,62 @@ namespace TimeTableApp
 
         private void SaveDataButton_Click(object sender, EventArgs e)
         {
-            TimetableData data = BuildDataFromUi();
-            TimetableStorage.SaveCurrent(data);
-            _statusLabel.Text = "Saved data: " + TimetableStorage.CurrentFilePath;
+            using (var dialog = new SaveFileDialog())
+            {
+                dialog.Filter = "Timetable Data (*.ttd.xml)|*.ttd.xml|XML files (*.xml)|*.xml|All files (*.*)|*.*";
+                dialog.FileName = "timetable_data.ttd.xml";
+                dialog.InitialDirectory = TimetableStorage.DataDirectory;
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                string path = EnsureDataFileExtension(dialog.FileName);
+                TimetableData data = BuildDataFromUi();
+                try
+                {
+                    TimetableStorage.SaveToFile(path, data);
+                    TimetableStorage.SaveCurrent(data);
+                    _statusLabel.Text = "Saved data: " + path;
+                }
+                catch (Exception ex)
+                {
+                    _statusLabel.Text = "Save failed: " + ex.Message;
+                }
+            }
+        }
+
+        private void LoadDataButton_Click(object sender, EventArgs e)
+        {
+            using (var dialog = new OpenFileDialog())
+            {
+                dialog.Filter = "Timetable Data (*.ttd.xml)|*.ttd.xml|XML files (*.xml)|*.xml|All files (*.*)|*.*";
+                dialog.InitialDirectory = TimetableStorage.DataDirectory;
+                dialog.CheckFileExists = true;
+                dialog.Multiselect = false;
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                try
+                {
+                    TimetableData data = TimetableStorage.LoadFromFile(dialog.FileName);
+                    if (data == null)
+                    {
+                        _statusLabel.Text = "Load failed: unsupported or broken file.";
+                        return;
+                    }
+
+                    LoadDataToUi(data);
+                    TimetableStorage.SaveCurrent(data);
+                    _statusLabel.Text = "Loaded data: " + dialog.FileName;
+                }
+                catch (Exception ex)
+                {
+                    _statusLabel.Text = "Load failed: " + ex.Message;
+                }
+            }
         }
 
         private void ResetButton_Click(object sender, EventArgs e)
@@ -1159,6 +1218,28 @@ namespace TimeTableApp
             }
 
             return value;
+        }
+
+        private static string EnsureDataFileExtension(string path)
+        {
+            string p = (path ?? string.Empty).Trim();
+            if (p.Length == 0)
+            {
+                return "timetable_data.ttd.xml";
+            }
+
+            if (p.EndsWith(".ttd.xml", StringComparison.OrdinalIgnoreCase))
+            {
+                return p;
+            }
+
+            string ext = Path.GetExtension(p);
+            if (string.Equals(ext, ".xml", StringComparison.OrdinalIgnoreCase))
+            {
+                return p.Substring(0, p.Length - ext.Length) + ".ttd.xml";
+            }
+
+            return p + ".ttd.xml";
         }
 
         private static TimetableTimeRow CreateHourMarkerRow(string text)
