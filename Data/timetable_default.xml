@@ -22,21 +22,21 @@
       <Destination>サンダーバード</Destination>
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0054)</Code>
+      <Code>(54)</Code>
       <CodeColor>Orange</CodeColor>
       <TrainNo>回8545M</TrainNo>
       <TrainType>回送</TrainType>
       <Destination />
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0057)</Code>
+      <Code>(57)</Code>
       <CodeColor>Blue</CodeColor>
       <TrainNo>3498M</TrainNo>
       <TrainType>新快</TrainType>
       <Destination>野洲</Destination>
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0003)</Code>
+      <Code>(03)</Code>
       <CodeColor>Orange</CodeColor>
       <TrainNo>8864レ</TrainNo>
       <TrainType>貨物</TrainType>
@@ -50,7 +50,7 @@
       <Destination />
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0012)</Code>
+      <Code>(12)</Code>
       <CodeColor>Blue</CodeColor>
       <TrainNo>3500M</TrainNo>
       <TrainType>新快</TrainType>
@@ -71,7 +71,7 @@
       <Destination>サンダーバード</Destination>
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0027)</Code>
+      <Code>(27)</Code>
       <CodeColor>Blue</CodeColor>
       <TrainNo>3502A</TrainNo>
       <TrainType>新快</TrainType>
@@ -92,7 +92,7 @@
       <Destination />
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0042)</Code>
+      <Code>(42)</Code>
       <CodeColor>Blue</CodeColor>
       <TrainNo>3506M</TrainNo>
       <TrainType>新快</TrainType>
@@ -126,7 +126,7 @@
       <Destination>はるか</Destination>
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0048)</Code>
+      <Code>(48)</Code>
       <CodeColor>Blue</CodeColor>
       <TrainNo>3508M</TrainNo>
       <TrainType>新快</TrainType>
@@ -140,14 +140,14 @@
       <Destination>サンダーバード</Destination>
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0057)</Code>
+      <Code>(57)</Code>
       <CodeColor>Blue</CodeColor>
       <TrainNo>3510A</TrainNo>
       <TrainType>新快</TrainType>
       <Destination>草津</Destination>
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0000)</Code>
+      <Code>(00)</Code>
       <CodeColor>Orange</CodeColor>
       <TrainNo>回8088M</TrainNo>
       <TrainType>回送</TrainType>
@@ -161,14 +161,14 @@
       <Destination />
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0009)</Code>
+      <Code>(09)</Code>
       <CodeColor>Orange</CodeColor>
       <TrainNo>回8092D</TrainNo>
       <TrainType>回送</TrainType>
       <Destination />
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0012)</Code>
+      <Code>(12)</Code>
       <CodeColor>Blue</CodeColor>
       <TrainNo>3512M</TrainNo>
       <TrainType>新快</TrainType>
@@ -189,7 +189,7 @@
       <Destination>サンダーバード</Destination>
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0027)</Code>
+      <Code>(27)</Code>
       <CodeColor>Blue</CodeColor>
       <TrainNo>3514M</TrainNo>
       <TrainType>新快</TrainType>
@@ -246,14 +246,14 @@
       <Destination />
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0039)</Code>
+      <Code>(39)</Code>
       <CodeColor>Orange</CodeColor>
       <TrainNo>回4166M</TrainNo>
       <TrainType>回送</TrainType>
       <Destination />
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0042)</Code>
+      <Code>(42)</Code>
       <CodeColor>Blue</CodeColor>
       <TrainNo>3516M</TrainNo>
       <TrainType>新快</TrainType>
@@ -281,7 +281,7 @@
       <Destination />
     </TimetableTrainInfoRow>
     <TimetableTrainInfoRow>
-      <Code>(0057)</Code>
+      <Code>(57)</Code>
       <CodeColor>Blue</CodeColor>
       <TrainNo>3518M</TrainNo>
       <TrainType>新快</TrainType>

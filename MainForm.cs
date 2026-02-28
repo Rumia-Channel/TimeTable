@@ -412,7 +412,7 @@ namespace TimeTableApp
             for (int i = 0; i < grid.Rows.Count; i++)
             {
                 TimetableTrainInfoRow row = (rows != null && i < rows.Length && rows[i] != null) ? rows[i] : new TimetableTrainInfoRow();
-                grid.Rows[i].Cells[0].Value = row.Code ?? string.Empty;
+                grid.Rows[i].Cells[0].Value = DisplayInfoTimeCode(row.Code);
                 grid.Rows[i].Cells[1].Value = string.IsNullOrEmpty(row.CodeColor) ? "Orange" : row.CodeColor;
                 grid.Rows[i].Cells[2].Value = row.TrainNo ?? string.Empty;
                 grid.Rows[i].Cells[3].Value = row.TrainType ?? string.Empty;
@@ -1102,12 +1102,25 @@ namespace TimeTableApp
             {
                 digits = digits.Substring(0, 4);
             }
-            else
-            {
-                digits = digits.PadLeft(4, '0');
-            }
 
             return "(" + digits + ")";
+        }
+
+        private static string DisplayInfoTimeCode(string raw)
+        {
+            string value = (raw ?? string.Empty).Trim();
+            if (value.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            Match m = Regex.Match(value, @"^\((\d{1,4})\)$");
+            if (m.Success)
+            {
+                return m.Groups[1].Value;
+            }
+
+            return value;
         }
 
         private static TimetableTimeRow CreateHourMarkerRow(string text)
