@@ -548,28 +548,17 @@ namespace TimeTableApp
                 return new TimetableTrainInfoRow[0];
             }
 
-            int last = -1;
+            var compact = new List<TimetableTrainInfoRow>();
             for (int i = 0; i < rows.Length; i++)
             {
                 TimetableTrainInfoRow row = rows[i];
                 if (row != null && !IsInfoRowEmpty(row))
                 {
-                    last = i;
+                    compact.Add(row);
                 }
             }
 
-            if (last < 0)
-            {
-                return new TimetableTrainInfoRow[0];
-            }
-
-            var trimmed = new TimetableTrainInfoRow[last + 1];
-            for (int i = 0; i <= last; i++)
-            {
-                trimmed[i] = rows[i] ?? new TimetableTrainInfoRow();
-            }
-
-            return trimmed;
+            return compact.ToArray();
         }
 
         private static TimetableTimeRow[] TrimTimeRows(TimetableTimeRow[] rows)
@@ -579,28 +568,17 @@ namespace TimeTableApp
                 return new TimetableTimeRow[0];
             }
 
-            int last = -1;
+            var compact = new List<TimetableTimeRow>();
             for (int i = 0; i < rows.Length; i++)
             {
                 TimetableTimeRow row = rows[i];
                 if (row != null && !IsTimeRowEmpty(row))
                 {
-                    last = i;
+                    compact.Add(row);
                 }
             }
 
-            if (last < 0)
-            {
-                return new TimetableTimeRow[0];
-            }
-
-            var trimmed = new TimetableTimeRow[last + 1];
-            for (int i = 0; i <= last; i++)
-            {
-                trimmed[i] = rows[i] ?? new TimetableTimeRow();
-            }
-
-            return trimmed;
+            return compact.ToArray();
         }
 
         private static TimeInputEntry[] ReadTimeInputEntries(TimetableTimeRow[] rows)

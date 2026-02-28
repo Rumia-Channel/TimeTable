@@ -173,7 +173,7 @@ namespace TimeTableApp
                     y += band.Height * 0.18f;
                     DrawCenter(g, row.TrainType, fType, bBlack, new RectangleF(c.Left, y, c.Width, band.Height * 0.22f));
                     y += band.Height * 0.22f;
-                    DrawCenter(g, row.Destination, fDst, bBlack, new RectangleF(c.Left, y, c.Width, band.Height * 0.26f));
+                    DrawCenterNoEllipsis(g, row.Destination, fDst, bBlack, new RectangleF(c.Left, y, c.Width, band.Height * 0.26f), 0.10f);
                 }
             }
         }
@@ -222,7 +222,7 @@ namespace TimeTableApp
 
             bool hasLeftHour = !string.IsNullOrWhiteSpace(leftHour);
             bool hasOverlayHour = overlayCol >= 0 && !string.IsNullOrEmpty(overlayHour);
-            RectangleF[] cols = BuildTimeSlots(band, labelW, count, hasOverlayHour ? overlayCol : -1);
+            RectangleF[] cols = BuildCols(band, labelW, count);
             hasOverlayHour = hasOverlayHour && overlayCol < cols.Length;
 
             if (hasLeftHour)
@@ -255,7 +255,7 @@ namespace TimeTableApp
                     RectangleF c = cols[i];
                     DrawTime(g, c, band, row.Time4, fMM, fSS, row.Highlight ? CGreen : CBlack);
                     DrawCenter(g, row.TrainNo, fMid, bBlack, new RectangleF(c.Left, c.Top + band.Height * 0.47f, c.Width, band.Height * 0.18f));
-                    DrawCenter(g, row.TypeAndDestination, fMid, bBlack, new RectangleF(c.Left, c.Top + band.Height * 0.64f, c.Width, band.Height * 0.19f));
+                    DrawCenterNoEllipsis(g, row.TypeAndDestination, fMid, bBlack, new RectangleF(c.Left, c.Top + band.Height * 0.64f, c.Width, band.Height * 0.19f), 0.10f);
 
                     if (!string.IsNullOrEmpty(row.NoteBlue) || !string.IsNullOrEmpty(row.NoteRed))
                     {
@@ -264,48 +264,6 @@ namespace TimeTableApp
                     }
                 }
             }
-        }
-
-        private static RectangleF[] BuildTimeSlots(RectangleF band, float labelW, int count, int overlayCol)
-        {
-            if (count <= 0)
-            {
-                return new RectangleF[0];
-            }
-
-            float px = band.Width * 0.012f;
-            float gap = band.Width * (count >= 10 ? 0.008f : 0.011f);
-            float left = band.Left + labelW + px;
-            float right = band.Right - px;
-            float usable = right - left - gap * (count - 1);
-            if (usable <= 0f)
-            {
-                return BuildCols(band, labelW, count);
-            }
-
-            bool hasOverlay = overlayCol >= 0 && overlayCol < count;
-            float weightSum = 0f;
-            for (int i = 0; i < count; i++)
-            {
-                weightSum += (hasOverlay && i == overlayCol) ? 0.5f : 1f;
-            }
-
-            if (weightSum <= 0f)
-            {
-                return BuildCols(band, labelW, count);
-            }
-
-            float unit = usable / weightSum;
-            RectangleF[] cols = new RectangleF[count];
-            float x = left;
-            for (int i = 0; i < count; i++)
-            {
-                float w = unit * ((hasOverlay && i == overlayCol) ? 0.5f : 1f);
-                cols[i] = new RectangleF(x, band.Top + band.Height * 0.02f, w, band.Height * 0.96f);
-                x += w + gap;
-            }
-
-            return cols;
         }
 
         private static void DrawHourLabelInSlot(Graphics g, RectangleF band, RectangleF[] cols, int slot, string text)
@@ -622,7 +580,23 @@ namespace TimeTableApp
             s.Dispose();
         }
 
-        private static Font CreateFittedFont(Graphics g, string text, Font baseFont, RectangleF rect, StringFormat format)
+        private static void DrawCenterNoEllipsis(Graphics g, string text, Font f, Brush b, RectangleF rect, float minScale)
+        {
+            string value = text ?? string.Empty;
+            StringFormat s = new StringFormat();
+            s.Alignment = StringAlignment.Center;
+            s.LineAlignment = StringAlignment.Center;
+            s.Trimming = StringTrimming.None;
+            s.FormatFlags = StringFormatFlags.NoWrap;
+            using (Font fitted = CreateFittedFont(g, value, f, rect, s, minScale))
+            {
+                g.DrawString(value, fitted, b, rect, s);
+            }
+
+            s.Dispose();
+        }
+
+        private static Font CreateFittedFont(Graphics g, string text, Font baseFont, RectangleF rect, StringFormat format, float minScale = 0.28f)
         {
             if (string.IsNullOrEmpty(text))
             {
@@ -630,7 +604,7 @@ namespace TimeTableApp
             }
 
             float size = baseFont.Size;
-            float minSize = Math.Max(4f, baseFont.Size * 0.28f);
+            float minSize = Math.Max(3f, baseFont.Size * minScale);
             SizeF layout = new SizeF(Math.Max(1f, rect.Width), Math.Max(1f, rect.Height));
             for (int i = 0; i < 30; i++)
             {
