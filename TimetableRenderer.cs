@@ -346,10 +346,50 @@ namespace TimeTableApp
             float h = band.Height * 0.22f;
             float baselineBottom = band.Top + band.Height * 0.46f;
             float y = baselineBottom - h;
-            using (Font f = FontFor(band.Height * 0.22f, FontStyle.Bold))
+            DrawHourText(g, text, new RectangleF(x, y, colW, h), band.Height);
+        }
+
+        private static void DrawHourText(Graphics g, string text, RectangleF rect, float bandHeight)
+        {
+            string value = text ?? string.Empty;
             using (Brush b = new SolidBrush(CBlack))
+            using (StringFormat sf = new StringFormat())
             {
-                DrawCenter(g, text, f, b, new RectangleF(x, y, colW, h));
+                sf.Alignment = StringAlignment.Center;
+                sf.LineAlignment = StringAlignment.Center;
+                sf.Trimming = StringTrimming.None;
+                sf.FormatFlags = StringFormatFlags.NoWrap;
+
+                float size = Math.Max(6f, bandHeight * 0.20f);
+                float min = 3f;
+                Font picked = null;
+                for (int i = 0; i < 36; i++)
+                {
+                    Font candidate = FontFor(size, FontStyle.Bold);
+                    SizeF measured = g.MeasureString(value, candidate, 1200, StringFormat.GenericTypographic);
+                    if (measured.Width <= rect.Width * 0.98f && measured.Height <= rect.Height * 0.98f)
+                    {
+                        picked = candidate;
+                        break;
+                    }
+
+                    candidate.Dispose();
+                    size *= 0.90f;
+                    if (size < min)
+                    {
+                        break;
+                    }
+                }
+
+                if (picked == null)
+                {
+                    picked = FontFor(min, FontStyle.Bold);
+                }
+
+                using (picked)
+                {
+                    g.DrawString(value, picked, b, rect, sf);
+                }
             }
         }
 
