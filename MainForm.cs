@@ -28,8 +28,6 @@ namespace TimeTableApp
 
         private readonly DataGridView _subHomeInfoGrid;
         private readonly DataGridView _mainHomeTimeGrid;
-        private readonly CheckBox _subHomeConfirmCheck;
-        private readonly CheckBox _mainHomeConfirmCheck;
         private readonly TextBox _remarksBox;
 
         public MainForm()
@@ -75,6 +73,11 @@ namespace TimeTableApp
             resetButton.AutoSize = true;
             resetButton.Click += ResetButton_Click;
 
+            var resetConfirmChecksButton = new Button();
+            resetConfirmChecksButton.Text = "確認チェック一括リセット";
+            resetConfirmChecksButton.AutoSize = true;
+            resetConfirmChecksButton.Click += ResetConfirmChecksButton_Click;
+
             _statusLabel = new Label();
             _statusLabel.AutoSize = true;
             _statusLabel.Padding = new Padding(12, 7, 0, 0);
@@ -84,6 +87,7 @@ namespace TimeTableApp
             actionPanel.Controls.Add(saveDataButton);
             actionPanel.Controls.Add(loadDataButton);
             actionPanel.Controls.Add(resetButton);
+            actionPanel.Controls.Add(resetConfirmChecksButton);
             actionPanel.Controls.Add(_statusLabel);
 
             var headPanel = new FlowLayoutPanel();
@@ -161,8 +165,6 @@ namespace TimeTableApp
 
             _subHomeInfoGrid = CreateInfoGrid(48);
             _mainHomeTimeGrid = CreateTimeGrid(48);
-            _subHomeConfirmCheck = CreateConfirmationCheckBox();
-            _mainHomeConfirmCheck = CreateConfirmationCheckBox();
             _remarksBox = new TextBox();
             _remarksBox.Multiline = true;
             _remarksBox.AcceptsReturn = true;
@@ -171,8 +173,8 @@ namespace TimeTableApp
             _remarksBox.WordWrap = true;
             _remarksBox.Dock = DockStyle.Fill;
 
-            AddSingleGridTab(tabs, "サブホーム", _subHomeInfoGrid, _subHomeConfirmCheck);
-            AddSingleGridTab(tabs, "メインホーム", _mainHomeTimeGrid, _mainHomeConfirmCheck);
+            AddSingleGridTab(tabs, "サブホーム", _subHomeInfoGrid);
+            AddSingleGridTab(tabs, "メインホーム", _mainHomeTimeGrid);
             AddRemarksTab(tabs, "備考欄", _remarksBox);
 
             root.Controls.Add(actionPanel, 0, 0);
@@ -273,6 +275,13 @@ namespace TimeTableApp
             _statusLabel.Text = "Reset to default file.";
         }
 
+        private void ResetConfirmChecksButton_Click(object sender, EventArgs e)
+        {
+            ClearConfirmChecks(_subHomeInfoGrid, 5);
+            ClearConfirmChecks(_mainHomeTimeGrid, 6);
+            _statusLabel.Text = "確認チェックをすべてリセットしました。";
+        }
+
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             try
@@ -334,6 +343,8 @@ namespace TimeTableApp
                 ContentTextScale = (float)_contentTextScaleBox.Value,
                 RemarksText = _remarksBox.Text ?? string.Empty,
                 DrawBottomVerticalLines = _bottomVerticalCheck.Checked,
+                SubHomeRowChecks = ReadRowChecks(_subHomeInfoGrid, 5),
+                MainHomeRowChecks = ReadRowChecks(_mainHomeTimeGrid, 6),
                 TopLeftHour = topLeftHour,
                 TopOverlayColumn = topOverlayColumn,
                 TopOverlayHour = topOverlayHour,
@@ -385,6 +396,8 @@ namespace TimeTableApp
                     data.MidLeftHour,
                     data.MidOverlayColumn,
                     data.MidOverlayHour));
+            WriteRowChecks(_subHomeInfoGrid, 5, data.SubHomeRowChecks);
+            WriteRowChecks(_mainHomeTimeGrid, 6, data.MainHomeRowChecks);
         }
 
         private static DataGridView CreateInfoGrid(int rows)
@@ -400,6 +413,7 @@ namespace TimeTableApp
             grid.Columns.Add("TrainNo", "TrainNo");
             grid.Columns.Add("TrainType", "TrainType");
             grid.Columns.Add("Destination", "Destination");
+            grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Confirmed", HeaderText = "確認" });
             grid.Rows.Add(rows);
             AttachRowContextMenu(grid);
             return grid;
@@ -414,6 +428,7 @@ namespace TimeTableApp
             grid.Columns.Add("TypeAndDestination", "TypeAndDestination");
             grid.Columns.Add("Note", "Note");
             grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "UreSeat", HeaderText = "Ure-Seat" });
+            grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Confirmed", HeaderText = "確認" });
             grid.Rows.Add(rows);
             AttachRowContextMenu(grid);
             return grid;
@@ -552,7 +567,7 @@ namespace TimeTableApp
             }
         }
 
-        private static void AddSingleGridTab(TabControl tabs, string tabTitle, Control gridControl, CheckBox confirmCheck)
+        private static void AddSingleGridTab(TabControl tabs, string tabTitle, Control gridControl)
         {
             var page = new TabPage(tabTitle);
 
@@ -562,40 +577,16 @@ namespace TimeTableApp
 
             var layout = new TableLayoutPanel();
             layout.Dock = DockStyle.Fill;
-            layout.RowCount = 2;
+            layout.RowCount = 1;
             layout.ColumnCount = 1;
-            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
-            var checkPanel = new FlowLayoutPanel();
-            checkPanel.AutoSize = true;
-            checkPanel.WrapContents = false;
-            checkPanel.Dock = DockStyle.Fill;
-            checkPanel.Padding = new Padding(6, 6, 6, 0);
-
-            var infoLabel = new Label();
-            infoLabel.AutoSize = true;
-            infoLabel.Padding = new Padding(0, 5, 8, 0);
-            infoLabel.Text = "確認用（時刻表・XMLへの出力対象外）";
-
-            checkPanel.Controls.Add(infoLabel);
-            checkPanel.Controls.Add(confirmCheck);
-
             gridControl.Dock = DockStyle.Fill;
-            layout.Controls.Add(checkPanel, 0, 0);
-            layout.Controls.Add(gridControl, 0, 1);
+            layout.Controls.Add(gridControl, 0, 0);
             group.Controls.Add(layout);
 
             page.Controls.Add(group);
             tabs.TabPages.Add(page);
-        }
-
-        private static CheckBox CreateConfirmationCheckBox()
-        {
-            var check = new CheckBox();
-            check.AutoSize = true;
-            check.Text = "確認済み";
-            return check;
         }
 
         private static void AddRemarksTab(TabControl tabs, string tabTitle, TextBox remarksBox)
@@ -724,6 +715,34 @@ namespace TimeTableApp
             }
 
             return rows;
+        }
+
+        private static bool[] ReadRowChecks(DataGridView grid, int checkColumnIndex)
+        {
+            var checks = new bool[grid.Rows.Count];
+            for (int i = 0; i < grid.Rows.Count; i++)
+            {
+                checks[i] = CellBool(grid.Rows[i], checkColumnIndex);
+            }
+
+            return checks;
+        }
+
+        private static void WriteRowChecks(DataGridView grid, int checkColumnIndex, bool[] checks)
+        {
+            for (int i = 0; i < grid.Rows.Count; i++)
+            {
+                bool value = checks != null && i < checks.Length && checks[i];
+                grid.Rows[i].Cells[checkColumnIndex].Value = value;
+            }
+        }
+
+        private static void ClearConfirmChecks(DataGridView grid, int checkColumnIndex)
+        {
+            for (int i = 0; i < grid.Rows.Count; i++)
+            {
+                grid.Rows[i].Cells[checkColumnIndex].Value = false;
+            }
         }
 
         private static TimetableTrainInfoRow[] MergeInfoRows(params TimetableTrainInfoRow[][] groups)
