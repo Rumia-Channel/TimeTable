@@ -28,6 +28,8 @@ namespace TimeTableApp
 
         private readonly DataGridView _subHomeInfoGrid;
         private readonly DataGridView _mainHomeTimeGrid;
+        private readonly CheckBox _subHomeConfirmCheck;
+        private readonly CheckBox _mainHomeConfirmCheck;
         private readonly TextBox _remarksBox;
 
         public MainForm()
@@ -159,6 +161,8 @@ namespace TimeTableApp
 
             _subHomeInfoGrid = CreateInfoGrid(48);
             _mainHomeTimeGrid = CreateTimeGrid(48);
+            _subHomeConfirmCheck = CreateConfirmationCheckBox();
+            _mainHomeConfirmCheck = CreateConfirmationCheckBox();
             _remarksBox = new TextBox();
             _remarksBox.Multiline = true;
             _remarksBox.AcceptsReturn = true;
@@ -167,8 +171,8 @@ namespace TimeTableApp
             _remarksBox.WordWrap = true;
             _remarksBox.Dock = DockStyle.Fill;
 
-            AddSingleGridTab(tabs, "サブホーム", _subHomeInfoGrid);
-            AddSingleGridTab(tabs, "メインホーム", _mainHomeTimeGrid);
+            AddSingleGridTab(tabs, "サブホーム", _subHomeInfoGrid, _subHomeConfirmCheck);
+            AddSingleGridTab(tabs, "メインホーム", _mainHomeTimeGrid, _mainHomeConfirmCheck);
             AddRemarksTab(tabs, "備考欄", _remarksBox);
 
             root.Controls.Add(actionPanel, 0, 0);
@@ -397,6 +401,7 @@ namespace TimeTableApp
             grid.Columns.Add("TrainType", "TrainType");
             grid.Columns.Add("Destination", "Destination");
             grid.Rows.Add(rows);
+            AttachRowContextMenu(grid);
             return grid;
         }
 
@@ -410,6 +415,7 @@ namespace TimeTableApp
             grid.Columns.Add("Note", "Note");
             grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "UreSeat", HeaderText = "Ure-Seat" });
             grid.Rows.Add(rows);
+            AttachRowContextMenu(grid);
             return grid;
         }
 
@@ -430,18 +436,160 @@ namespace TimeTableApp
             return grid;
         }
 
-        private static void AddSingleGridTab(TabControl tabs, string tabTitle, Control gridControl)
+        private static void AttachRowContextMenu(DataGridView grid)
+        {
+            var menu = new ContextMenuStrip();
+            var insertItem = new ToolStripMenuItem("行を挿入");
+            var deleteItem = new ToolStripMenuItem("行を削除");
+            menu.Items.Add(insertItem);
+            menu.Items.Add(deleteItem);
+
+            insertItem.Click += delegate
+            {
+                if (grid.CurrentCell == null)
+                {
+                    return;
+                }
+
+                InsertRowAt(grid, grid.CurrentCell.RowIndex);
+            };
+
+            deleteItem.Click += delegate
+            {
+                if (grid.CurrentCell == null)
+                {
+                    return;
+                }
+
+                DeleteRowAt(grid, grid.CurrentCell.RowIndex);
+            };
+
+            grid.CellMouseDown += delegate(object sender, DataGridViewCellMouseEventArgs e)
+            {
+                if (e.Button != MouseButtons.Right || e.RowIndex < 0 || e.ColumnIndex < 0)
+                {
+                    return;
+                }
+
+                grid.CurrentCell = grid[e.ColumnIndex, e.RowIndex];
+                grid.ClearSelection();
+                grid.Rows[e.RowIndex].Selected = true;
+            };
+
+            grid.ContextMenuStrip = menu;
+        }
+
+        private static void InsertRowAt(DataGridView grid, int index)
+        {
+            if (index < 0 || index >= grid.Rows.Count)
+            {
+                return;
+            }
+
+            for (int i = grid.Rows.Count - 1; i > index; i--)
+            {
+                CopyRowValues(grid.Rows[i - 1], grid.Rows[i]);
+            }
+
+            ClearRowValues(grid.Rows[index]);
+        }
+
+        private static void DeleteRowAt(DataGridView grid, int index)
+        {
+            if (index < 0 || index >= grid.Rows.Count)
+            {
+                return;
+            }
+
+            for (int i = index; i < grid.Rows.Count - 1; i++)
+            {
+                CopyRowValues(grid.Rows[i + 1], grid.Rows[i]);
+            }
+
+            ClearRowValues(grid.Rows[grid.Rows.Count - 1]);
+        }
+
+        private static void CopyRowValues(DataGridViewRow source, DataGridViewRow target)
+        {
+            for (int i = 0; i < target.Cells.Count; i++)
+            {
+                target.Cells[i].Value = source.Cells[i].Value;
+            }
+        }
+
+        private static void ClearRowValues(DataGridViewRow row)
+        {
+            for (int i = 0; i < row.Cells.Count; i++)
+            {
+                if (row.Cells[i] is DataGridViewCheckBoxCell)
+                {
+                    row.Cells[i].Value = false;
+                    continue;
+                }
+
+                DataGridViewComboBoxCell comboCell = row.Cells[i] as DataGridViewComboBoxCell;
+                if (comboCell != null)
+                {
+                    if (comboCell.Items.Count > 0)
+                    {
+                        row.Cells[i].Value = comboCell.Items[0];
+                    }
+                    else
+                    {
+                        row.Cells[i].Value = null;
+                    }
+
+                    continue;
+                }
+
+                row.Cells[i].Value = string.Empty;
+            }
+        }
+
+        private static void AddSingleGridTab(TabControl tabs, string tabTitle, Control gridControl, CheckBox confirmCheck)
         {
             var page = new TabPage(tabTitle);
 
             var group = new GroupBox();
             group.Text = "入力";
             group.Dock = DockStyle.Fill;
+
+            var layout = new TableLayoutPanel();
+            layout.Dock = DockStyle.Fill;
+            layout.RowCount = 2;
+            layout.ColumnCount = 1;
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
+
+            var checkPanel = new FlowLayoutPanel();
+            checkPanel.AutoSize = true;
+            checkPanel.WrapContents = false;
+            checkPanel.Dock = DockStyle.Fill;
+            checkPanel.Padding = new Padding(6, 6, 6, 0);
+
+            var infoLabel = new Label();
+            infoLabel.AutoSize = true;
+            infoLabel.Padding = new Padding(0, 5, 8, 0);
+            infoLabel.Text = "確認用（時刻表・XMLへの出力対象外）";
+
+            checkPanel.Controls.Add(infoLabel);
+            checkPanel.Controls.Add(confirmCheck);
+
             gridControl.Dock = DockStyle.Fill;
-            group.Controls.Add(gridControl);
+            layout.Controls.Add(checkPanel, 0, 0);
+            layout.Controls.Add(gridControl, 0, 1);
+            group.Controls.Add(layout);
 
             page.Controls.Add(group);
             tabs.TabPages.Add(page);
+        }
+
+        private static CheckBox CreateConfirmationCheckBox()
+        {
+            var check = new CheckBox();
+            check.AutoSize = true;
+            check.Text = "確認済み";
+            return check;
         }
 
         private static void AddRemarksTab(TabControl tabs, string tabTitle, TextBox remarksBox)
