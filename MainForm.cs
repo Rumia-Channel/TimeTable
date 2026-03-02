@@ -466,12 +466,18 @@ namespace TimeTableApp
 
             grid.CellMouseDown += delegate(object sender, DataGridViewCellMouseEventArgs e)
             {
-                if (e.Button != MouseButtons.Right || e.RowIndex < 0 || e.ColumnIndex < 0)
+                if (e.Button != MouseButtons.Right || e.RowIndex < 0)
                 {
                     return;
                 }
 
-                grid.CurrentCell = grid[e.ColumnIndex, e.RowIndex];
+                int columnIndex = e.ColumnIndex >= 0 ? e.ColumnIndex : 0;
+                if (grid.Columns.Count == 0)
+                {
+                    return;
+                }
+
+                grid.CurrentCell = grid[columnIndex, e.RowIndex];
                 grid.ClearSelection();
                 grid.Rows[e.RowIndex].Selected = true;
             };
