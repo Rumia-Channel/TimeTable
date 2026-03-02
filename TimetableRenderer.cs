@@ -1189,6 +1189,8 @@ namespace TimeTableApp
 
         public bool DrawBottomVerticalLines;
         public float ContentTextScale;
+        public bool[] SubHomeRowChecks;
+        public bool[] MainHomeRowChecks;
 
         public TimetableTrainInfoRow[] TopInfo;
         public TimetableTimeRow[] TopTimes;
@@ -1221,6 +1223,8 @@ namespace TimeTableApp
                 MidOverlayHour = string.Empty,
                 DrawBottomVerticalLines = false,
                 ContentTextScale = 0.95f,
+                SubHomeRowChecks = new bool[0],
+                MainHomeRowChecks = new bool[0],
                 TopInfo = new TimetableTrainInfoRow[0],
                 TopTimes = new TimetableTimeRow[0],
                 MidInfo = new TimetableTrainInfoRow[0],
